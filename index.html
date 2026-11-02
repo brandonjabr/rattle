@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#160f2e" />
+  <title>Rabbit Hole — 60s</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+
+    <!-- ===== START ===== -->
+    <section class="screen start" id="startScreen">
+      <div class="logo">RABBIT<span>HOLE</span></div>
+      <div class="tagline">60 seconds. Name as many as you can. The rarer each answer, the more points it is worth.</div>
+
+      <div class="start-card">
+        <div class="label" id="catLabel">Category</div>
+        <div class="cat-row">
+          <button class="nav" id="prevCat" aria-label="Previous category">&lsaquo;</button>
+          <div class="category" id="startCategory">Name a fruit</div>
+          <button class="nav" id="nextCat" aria-label="Next category">&rsaquo;</button>
+        </div>
+        <div class="best" id="startBest"></div>
+        <button class="link daily-jump" id="dailyJump" hidden>Back to today's challenge</button>
+      </div>
+
+      <div class="countdown" id="countdown"></div>
+      <button class="big-btn" id="startBtn">Start 60 seconds</button>
+      <button class="link" id="howBtn">How to play</button>
+    </section>
+
+    <!-- ===== GAME ===== -->
+    <section class="screen game" id="gameScreen" hidden>
+      <div class="hud">
+        <div class="timer">
+          <svg viewBox="0 0 120 120" class="ring" aria-hidden="true">
+            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="ring-fg" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="time-num" id="timeNum">60</div>
+        </div>
+        <div class="scorebox">
+          <div class="score" id="score">0</div>
+          <div class="score-label"><span id="count">0</span> named · <span id="catSmall">fruit</span></div>
+        </div>
+      </div>
+
+      <form id="form" autocomplete="off">
+        <input id="guess" type="text" placeholder="Type a fruit, hit enter…"
+               autocapitalize="off" autocorrect="off" spellcheck="false"
+               enterkeyhint="go" aria-label="Your answer" />
+      </form>
+      <div class="feedback" id="feedback">Go!</div>
+
+      <div class="chips" id="chips"></div>
+      <div class="float-layer" id="floatLayer"></div>
+    </section>
+
+    <!-- ===== RESULTS ===== -->
+    <section class="screen results" id="resultsScreen" hidden>
+      <div class="confetti" id="confetti"></div>
+      <div class="results-inner">
+        <div class="r-title">Time!</div>
+        <div class="r-score" id="finalScore">0</div>
+        <div class="r-sub" id="finalSub"></div>
+
+        <div class="breakdown" id="breakdown"></div>
+
+        <div class="haul" id="haul"></div>
+
+        <div class="lb-wrap" id="lbWrap">
+          <div class="lb-head">
+            <div class="lb-title">Leaderboard</div>
+            <div class="lb-tabs">
+              <button class="lb-tab active" id="tabToday">Today</button>
+              <button class="lb-tab" id="tabAll">All time</button>
+            </div>
+          </div>
+          <div class="lb-entry">
+            <input id="nameInput" maxlength="20" placeholder="Your name"
+                   autocomplete="off" autocapitalize="words" />
+            <button class="big-btn sm" id="submitScore">Post my score</button>
+          </div>
+          <ol class="lb-list" id="lbList"></ol>
+          <div class="lb-note" id="lbNote"></div>
+        </div>
+
+        <div class="r-actions">
+          <button class="big-btn" id="shareBtn">Copy results</button>
+          <button class="link" id="againBtn">Play again</button>
+        </div>
+      </div>
+    </section>
+
+    <footer>&copy; Brandon Jabr 2026</footer>
+  </main>
+
+  <!-- How to play -->
+  <div class="modal" id="howModal" hidden>
+    <div class="sheet">
+      <h3>How to play</h3>
+      <p>You have <b>60 seconds</b>. Name as many things in the category as you can.</p>
+      <ul>
+        <li>Every answer is worth <b>0 to 1000 points</b>, based on how rare it is.</li>
+        <li>Common picks score a little. Deep cuts score big.</li>
+        <li>At the end you get bonus points for your strategy: go wide with lots of answers, or go deep with only rare ones. Both can win.</li>
+      </ul>
+      <p>Screenshot your score and challenge a friend to beat it.</p>
+      <button class="big-btn close" id="closeHow">Got it</button>
+    </div>
+  </div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
