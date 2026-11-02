@@ -1,5 +1,5 @@
 /*
- * Rabbit Hole, the deck.
+ * Rattle, the deck.
  * Each category is one puzzle with a rarity-ranked answer bank. `rarity` just
  * needs to grow with obscurity (1 = most common); the game turns it into a
  * 0 to 1000 point value per answer. Pick a category on the start screen.

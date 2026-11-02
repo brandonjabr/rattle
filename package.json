@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler pages dev .",
-    "deploy": "wrangler pages deploy . --project-name rabbit-hole",
-    "db:init": "wrangler d1 execute rabbit-hole-db --remote --file=./schema.sql",
-    "db:init:local": "wrangler d1 execute rabbit-hole-db --local --file=./schema.sql"
+    "deploy": "wrangler pages deploy . --project-name rattle",
+    "db:init": "wrangler d1 execute rattle-db --remote --file=./schema.sql",
+    "db:init:local": "wrangler d1 execute rattle-db --local --file=./schema.sql"
   },
   "devDependencies": {
     "wrangler": "^4.86.0"

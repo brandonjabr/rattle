@@ -47,8 +47,7 @@ The six rarity bands (by points): Common · Easy · Tricky · Rare · Exotic · 
 
 ## 3. The answer-bank pipeline (the moat)
 
-Defensibility is a **pre-computed, self-vetted answer bank** per puzzle. For Rabbit
-Hole the bank additionally needs a **reliable total ordering by rarity**, because the
+Defensibility is a **pre-computed, self-vetted answer bank** per puzzle. For Rattle the bank additionally needs a **reliable total ordering by rarity**, because the
 whole game is "rarer than the last." Run a week ahead, adversarial with itself:
 
 1. **Over-generate.** Prompt an LLM for the long tail of valid answers in many passes

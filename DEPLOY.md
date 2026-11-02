@@ -51,7 +51,7 @@ npx wrangler login
 ## Step 2 — Create the database
 
 ```bash
-npx wrangler d1 create rabbit-hole-db
+npx wrangler d1 create rattle-db
 ```
 
 This prints a block that includes a `database_id`. **Copy that id** and paste it into
@@ -60,7 +60,7 @@ This prints a block that includes a `database_id`. **Copy that id** and paste it
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "rabbit-hole-db"
+database_name = "rattle-db"
 database_id = "the-long-id-you-just-copied"
 ```
 
@@ -89,12 +89,12 @@ Stop the dev server with `Ctrl + C`.
 npm run deploy
 ```
 
-The first deploy creates a Pages project named `rabbit-hole` and gives you a live URL
-like `https://rabbit-hole.pages.dev`. Open it, it is live.
+The first deploy creates a Pages project named `rattle` and gives you a live URL
+like `https://rattle.pages.dev`. Open it, it is live.
 
 **Connect the database to the live site (one time):** in the Cloudflare dashboard go to
-**Workers & Pages → rabbit-hole → Settings → Functions → D1 database bindings → Add
-binding**. Set **Variable name** to `DB` and pick **rabbit-hole-db**. Save, then run
+**Workers & Pages → rattle → Settings → Functions → D1 database bindings → Add
+binding**. Set **Variable name** to `DB` and pick **rattle-db**. Save, then run
 `npm run deploy` once more so the change takes effect. Now the live leaderboard works.
 
 Every time you change the game later, just run `npm run deploy` again.
@@ -108,8 +108,8 @@ Two easy paths:
 - **Already own one elsewhere?** dashboard → **Add a site**, follow the steps to point
   your registrar's nameservers at Cloudflare.
 
-Then attach it to the game: **Workers & Pages → rabbit-hole → Custom domains → Set up a
-custom domain**, type your domain (for example `rabbithole.game` or
+Then attach it to the game: **Workers & Pages → rattle → Custom domains → Set up a
+custom domain**, type your domain (for example `rattle.game` or
 `play.yourdomain.com`), and confirm. Cloudflare adds the DNS record and a free SSL
 certificate for you in a minute or two. Done.
 

@@ -1,4 +1,4 @@
--- Rabbit Hole leaderboard storage (Cloudflare D1 / SQLite)
+-- Rattle leaderboard storage (Cloudflare D1 / SQLite)
 CREATE TABLE IF NOT EXISTS scores (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   category   TEXT    NOT NULL,   -- e.g. "fruit", "country"

@@ -1,4 +1,4 @@
-/* Rabbit Hole, 60 second rarity rush (frontend) */
+/* Rattle, 60 second rarity rush (frontend) */
 import { DECK } from "./deck.js";
 import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js";
 
@@ -277,7 +277,7 @@ async function doShare() {
   if (!lastRun) return;
   const text = buildShareText();
   if (navigator.share) {
-    try { await navigator.share({ title: "Rabbit Hole", text }); return; }
+    try { await navigator.share({ title: "Rattle", text }); return; }
     catch (e) { if (e && e.name === "AbortError") return; }
   }
   copy(text);
