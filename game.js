@@ -8,14 +8,12 @@ const $ = (id) => document.getElementById(id);
 
 // ---- active puzzle ----
 let deckIndex = 0, P, CAT;      // CAT = { maxR, lookup }
-function noun() { return P.category.replace(/^name an?\s+/i, ""); }
-
 function loadPuzzle(i) {
   deckIndex = ((i % DECK.length) + DECK.length) % DECK.length;
   P = DECK[deckIndex];
   CAT = indexCategory(P.entries);
   updateStartCard();
-  try { localStorage.setItem("rabbit-cat", deckIndex); } catch (e) {}
+  try { localStorage.setItem("rattle-cat", deckIndex); } catch (e) {}
 }
 // The category of the day is the same for everyone (chosen by UTC date), so the
 // daily leaderboard is one shared board.
@@ -30,7 +28,7 @@ function updateStartCard() {
   label.textContent = isDaily ? "⭐ Today's challenge" : "Category (free play)";
   label.classList.toggle("daily", isDaily);
   $("dailyJump").hidden = isDaily;
-  $("startCategory").textContent = P.category;
+  $("startCategory").textContent = P.category + "!";
   const b = getBest();
   $("startBest").textContent = b ? "Your best: " + fmt(b) : "No score yet";
 }
@@ -50,8 +48,7 @@ function startRound() {
   round = { items: [], names: {}, base: 0, misses: 0, start: performance.now(), ended: false };
   startScreen.hidden = true; resultsScreen.hidden = true; gameScreen.hidden = false;
   chipsEl.innerHTML = ""; scoreEl.textContent = "0"; countEl.textContent = "0";
-  $("catSmall").textContent = noun();
-  guessEl.placeholder = "Type a " + noun() + ", hit enter";
+  $("catSmall").textContent = P.category.toLowerCase();
   feedbackEl.textContent = "Go!"; feedbackEl.className = "feedback good";
   ringFg.setAttribute("class", "ring-fg"); timerWrap.classList.remove("pulse");
   guessEl.value = ""; guessEl.disabled = false; guessEl.focus();
@@ -128,7 +125,7 @@ function endRound() {
   const haul = BANDS.map((b, i) => dist[i] ? b.emoji + dist[i] : "").filter(Boolean).join("  ");
 
   const best = saveBest(total);
-  lastRun = { categoryId: P.id, answers: round.items.map((i) => i.name), total, count, haul };
+  lastRun = { categoryId: P.id, answers: round.items.map((i) => i.name), total, count, haul, dist };
   lastRank = null; lastAllRank = null;
 
   gameScreen.hidden = true; resultsScreen.hidden = false;
@@ -202,7 +199,7 @@ async function postScore() {
     lbScope = "today"; setTab("today");
     renderBoard(data.top, name);
     const allPart = data.allTimeRank ? ", #" + data.allTimeRank + " all time" : "";
-    $("lbNote").textContent = "You are #" + data.rank + " today" + allPart + " in " + noun() + ".";
+    $("lbNote").textContent = "You are #" + data.rank + " today" + allPart + " in " + P.category.toLowerCase() + ".";
     btn.textContent = "Posted!";
     lastRank = data.rank; lastAllRank = data.allTimeRank || null;
     $("shareBtn").textContent = "Share my rank";
@@ -260,12 +257,21 @@ function copy(text) {
 
 // Share (uses the native share sheet on phones to pull friends in; copies otherwise).
 function buildShareText() {
-  let t = "Rabbit Hole, " + P.category + "\nScore " + fmt(lastRun.total) + ", " + lastRun.count + " named\n" + lastRun.haul;
-  if (lastRank) {
-    t += "\nI'm #" + lastRank + " today" + (lastAllRank ? " (#" + lastAllRank + " all time)" : "") +
-         " in " + noun() + ". Can you beat me?";
+  // one labelled line per rarity found, common -> legendary
+  const parts = [];
+  for (let i = 0; i < BANDS.length; i++) {
+    if (lastRun.dist[i]) parts.push(BANDS[i].emoji + " " + lastRun.dist[i] + " " + BANDS[i].label.toLowerCase());
   }
-  return t + "\n" + location.href;
+  let t = "Rattle — Rattle off some " + P.category + "!\n\n";
+  t += "I rattled off " + lastRun.count + " for " + fmt(lastRun.total) + " points! 🎉\n";
+  t += "My haul, from common to legendary:\n" + parts.join("\n");
+  if (lastRank) {
+    t += "\n\n🏆 #" + lastRank + " today" + (lastAllRank ? ", #" + lastAllRank + " all-time" : "") +
+         ". Your turn — can you beat me? 😄";
+  } else {
+    t += "\n\nCan you name more? 😄";
+  }
+  return t + "\nPlay free: " + location.href;
 }
 async function doShare() {
   if (!lastRun) return;
@@ -300,11 +306,11 @@ function tickCountdown() {
     if (!startScreen.hidden) loadPuzzle(dailyIndex());
   }
 }
-function bestKey() { return "rabbit-best-" + P.id; }
+function bestKey() { return "rattle-best-" + P.id; }
 function getBest() { try { return parseInt(localStorage.getItem(bestKey()) || "0", 10) || 0; } catch (e) { return 0; } }
 function saveBest(total) { const b = getBest(); if (total > b) { try { localStorage.setItem(bestKey(), total); } catch (e) {} return total; } return b; }
-function getName() { try { return localStorage.getItem("rabbit-name") || ""; } catch (e) { return ""; } }
-function setName(n) { try { localStorage.setItem("rabbit-name", n); } catch (e) {} }
+function getName() { try { return localStorage.getItem("rattle-name") || ""; } catch (e) { return ""; } }
+function setName(n) { try { localStorage.setItem("rattle-name", n); } catch (e) {} }
 
 // ---- wire up ----
 $("startBtn").addEventListener("click", startRound);

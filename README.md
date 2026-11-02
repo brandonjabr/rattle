@@ -1,4 +1,4 @@
-# Rabbit Hole
+# Rattle
 
 A daily **60-second "name as many X as you can, deep cuts worth more" game**. One category; name as many things as you can
 before the clock runs out. Every answer is worth **0–1000 points** by how rare it

@@ -1,5 +1,5 @@
 {
-  "name": "rabbit-hole",
+  "name": "rattle",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,6 @@
     "db:init:local": "wrangler d1 execute rabbit-hole-db --local --file=./schema.sql"
   },
   "devDependencies": {
-    "wrangler": "^3.80.0"
+    "wrangler": "^4.86.0"
   }
 }

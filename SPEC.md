@@ -1,4 +1,4 @@
-# Rabbit Hole — design & pipeline spec
+# Rattle — design & pipeline spec
 
 A daily **60-second rarity rush**. One category per day; name as many things as you
 can before the clock runs out. Every answer is worth **0–1000 points** by how rare

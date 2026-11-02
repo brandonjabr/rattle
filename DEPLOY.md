@@ -1,4 +1,4 @@
-# Deploying Rabbit Hole to Cloudflare
+# Deploying Rattle to Cloudflare
 
 Everything runs on Cloudflare: **Pages** serves the site, **Pages Functions** run the
 API, and **D1** (a serverless SQLite database) stores the leaderboard. One vendor,
@@ -41,7 +41,7 @@ node -v
 ## Step 1 — Get the code and install tools
 
 ```bash
-cd ~/git/rabbit-hole
+cd ~/git/rattle
 npm install
 npx wrangler login
 ```

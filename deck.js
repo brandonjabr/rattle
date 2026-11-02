@@ -6,7 +6,7 @@
  */
 export const DECK = [
 
-  { id: "fruit", category: "Name a fruit", entries: [
+  { id: "fruit", category: "Fruits", entries: [
     { name: "Apple", rarity: 1 }, { name: "Banana", rarity: 2 }, { name: "Orange", rarity: 3 },
     { name: "Grape", rarity: 4 }, { name: "Strawberry", rarity: 5 }, { name: "Watermelon", rarity: 6 },
     { name: "Lemon", rarity: 7 }, { name: "Pineapple", rarity: 8 }, { name: "Cherry", rarity: 9 },
@@ -35,7 +35,7 @@ export const DECK = [
     { name: "Santol", rarity: 63 }, { name: "Marang", rarity: 64 }
   ]},
 
-  { id: "country", category: "Name a country", entries: [
+  { id: "country", category: "Countries", entries: [
     { name: "United States", rarity: 4, aliases: ["usa", "us", "america", "united states of america"] },
     { name: "China", rarity: 6 }, { name: "India", rarity: 7 }, { name: "France", rarity: 8 }, { name: "Japan", rarity: 9 },
     { name: "United Kingdom", rarity: 9, aliases: ["uk", "britain", "great britain"] }, { name: "Russia", rarity: 9 },
@@ -66,7 +66,7 @@ export const DECK = [
     { name: "Tuvalu", rarity: 98 }, { name: "Brunei", rarity: 80 }, { name: "Lesotho", rarity: 87 }, { name: "Djibouti", rarity: 88 }
   ]},
 
-  { id: "element", category: "Name a chemical element", entries: [
+  { id: "element", category: "Chemical Elements", entries: [
     { name: "Oxygen", rarity: 1 }, { name: "Hydrogen", rarity: 2 }, { name: "Carbon", rarity: 3 }, { name: "Gold", rarity: 4 },
     { name: "Iron", rarity: 5 }, { name: "Helium", rarity: 6 }, { name: "Nitrogen", rarity: 7 }, { name: "Silver", rarity: 8 },
     { name: "Copper", rarity: 9 }, { name: "Aluminum", rarity: 10, aliases: ["aluminium"] }, { name: "Sodium", rarity: 11 },
@@ -94,7 +94,7 @@ export const DECK = [
     { name: "Roentgenium", rarity: 95 }, { name: "Nihonium", rarity: 96 }, { name: "Moscovium", rarity: 97 }, { name: "Tennessine", rarity: 98 }
   ]},
 
-  { id: "dog", category: "Name a dog breed", entries: [
+  { id: "dog", category: "Dog Breeds", entries: [
     { name: "Labrador", rarity: 1, aliases: ["labrador retriever", "lab"] }, { name: "German Shepherd", rarity: 2 },
     { name: "Golden Retriever", rarity: 3 }, { name: "Bulldog", rarity: 4 }, { name: "Poodle", rarity: 5 }, { name: "Beagle", rarity: 6 },
     { name: "Rottweiler", rarity: 7 }, { name: "Dachshund", rarity: 8, aliases: ["wiener dog", "sausage dog"] }, { name: "Boxer", rarity: 9 },
@@ -114,7 +114,7 @@ export const DECK = [
     { name: "Affenpinscher", rarity: 53 }, { name: "Otterhound", rarity: 54 }, { name: "Sloughi", rarity: 55 }, { name: "Lowchen", rarity: 56 }
   ]},
 
-  { id: "instrument", category: "Name a musical instrument", entries: [
+  { id: "instrument", category: "Musical Instruments", entries: [
     { name: "Guitar", rarity: 1 }, { name: "Piano", rarity: 2 }, { name: "Drums", rarity: 3 }, { name: "Violin", rarity: 4 },
     { name: "Flute", rarity: 5 }, { name: "Trumpet", rarity: 6 }, { name: "Saxophone", rarity: 7, aliases: ["sax"] }, { name: "Cello", rarity: 8 },
     { name: "Clarinet", rarity: 9 }, { name: "Harp", rarity: 10 }, { name: "Trombone", rarity: 11 }, { name: "Harmonica", rarity: 12 },
@@ -131,7 +131,7 @@ export const DECK = [
     { name: "Theorbo", rarity: 50 }, { name: "Shawm", rarity: 51 }, { name: "Crumhorn", rarity: 52 }, { name: "Cajon", rarity: 53 }
   ]},
 
-  { id: "myth", category: "Name a Greek god or hero", entries: [
+  { id: "myth", category: "Greek Gods & Heroes", entries: [
     { name: "Zeus", rarity: 1 }, { name: "Hades", rarity: 2 }, { name: "Poseidon", rarity: 3 }, { name: "Athena", rarity: 4 },
     { name: "Apollo", rarity: 5 }, { name: "Ares", rarity: 6 }, { name: "Hera", rarity: 7 }, { name: "Aphrodite", rarity: 8 },
     { name: "Hermes", rarity: 9 }, { name: "Artemis", rarity: 10 }, { name: "Hercules", rarity: 11, aliases: ["heracles"] },
@@ -148,7 +148,7 @@ export const DECK = [
     { name: "Adonis", rarity: 51 }, { name: "Tartarus", rarity: 52 }
   ]},
 
-  { id: "sport", category: "Name a sport", entries: [
+  { id: "sport", category: "Sports", entries: [
     { name: "Soccer", rarity: 1, aliases: ["football"] }, { name: "Basketball", rarity: 2 }, { name: "Baseball", rarity: 3 },
     { name: "Tennis", rarity: 4 }, { name: "Golf", rarity: 5 }, { name: "American Football", rarity: 6 },
     { name: "Hockey", rarity: 7, aliases: ["ice hockey"] }, { name: "Cricket", rarity: 8 }, { name: "Volleyball", rarity: 9 },
