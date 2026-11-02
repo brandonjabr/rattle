@@ -1,6 +1,6 @@
 # Rabbit Hole
 
-A daily **60-second rarity rush**. One category; name as many things as you can
+A daily **60-second "name as many X as you can, deep cuts worth more" game**. One category; name as many things as you can
 before the clock runs out. Every answer is worth **0–1000 points** by how rare it
 is — common picks score a little, deep cuts score big — and at the end you earn
 **strategy bonuses** for going wide (lots of answers) or going deep (only rare ones).
