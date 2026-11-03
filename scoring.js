@@ -24,13 +24,23 @@ export function norm(s) {
 }
 
 // Build a fast lookup (name + aliases) and the max rarity for one category.
+// Two passes so a real name always beats an alias, and when an ambiguous alias
+// (e.g. "football") is shared, the more common entry wins — entries are ordered
+// by rarity ascending, so the first binding for a key is the most common one.
 export function indexCategory(entries) {
   let maxR = 1;
   const lookup = {};
   for (const e of entries) {
     if (e.rarity > maxR) maxR = e.rarity;
-    lookup[norm(e.name)] = e;
-    if (e.aliases) for (const a of e.aliases) lookup[norm(a)] = e;
+    const k = norm(e.name);
+    if (!(k in lookup)) lookup[k] = e;
+  }
+  for (const e of entries) {
+    if (!e.aliases) continue;
+    for (const a of e.aliases) {
+      const k = norm(a);
+      if (!(k in lookup)) lookup[k] = e;
+    }
   }
   return { maxR, lookup };
 }

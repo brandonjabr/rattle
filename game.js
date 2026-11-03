@@ -130,7 +130,7 @@ function endRound() {
 
   gameScreen.hidden = true; resultsScreen.hidden = false;
   $("finalSub").textContent = count + " named, avg " + avg + " pts" + (total >= best && total > 0 ? ", new best!" : ", best " + fmt(best));
-  $("haul").innerHTML = haul || "nothing yet";
+  $("haul").innerHTML = haulCard(dist, round.items, count);
   $("breakdown").innerHTML =
     row("Answers", base, count + " named") +
     row("Volume bonus", volume, "50 each") +
@@ -253,6 +253,25 @@ function confetti() {
 function copy(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(fb); else fb();
   function fb() { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta); }
+}
+
+// Results haul: a mix bar plus one labelled row per rarity found, common -> legendary.
+function haulCard(dist, items, count) {
+  if (!count) return '<div class="haul-empty">Nothing this time. Give it another go!</div>';
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  let bar = "", rows = "";
+  BANDS.forEach((b, i) => {
+    if (!dist[i]) return;
+    bar += '<span style="flex:' + dist[i] + ';background:' + b.color + '"></span>';
+    const names = items.filter((it) => it.band === b)
+      .map((it) => esc(it.name.charAt(0).toUpperCase() + it.name.slice(1))).join(", ");
+    rows += '<div class="hrow"><span class="hemoji">' + b.emoji + '</span>' +
+      '<span class="hcount" style="color:' + b.color + '">' + dist[i] + '</span>' +
+      '<span class="hmain"><span class="hlabel">' + b.label + '</span>' +
+      '<span class="hnames">' + names + '</span></span></div>';
+  });
+  return '<div class="haul-title">Your haul, from common to legendary</div>' +
+    '<div class="hbar">' + bar + '</div>' + rows;
 }
 
 // Share (uses the native share sheet on phones to pull friends in; copies otherwise).
