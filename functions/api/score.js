@@ -7,7 +7,7 @@
  * score and returns the day's leaderboard plus this player's rank.
  */
 import { DECK } from "../../deck.js";
-import { scoreRound } from "../../scoring.js";
+import { scoreRound, indexCategory, norm } from "../../scoring.js";
 
 export async function onRequestPost({ request, env }) {
   let body;
@@ -20,7 +20,7 @@ export async function onRequestPost({ request, env }) {
   const puzzle = DECK.find((d) => d.id === categoryId);
   if (!puzzle) return json({ error: "Unknown category" }, 400);
 
-  const r = scoreRound(puzzle.entries, answers);
+  const r = scoreRound(puzzle.entries, answers, await verifiedExtras(env, categoryId, puzzle.entries, answers));
   const day = today();
 
   await env.DB.prepare(
@@ -41,6 +41,20 @@ export async function onRequestPost({ request, env }) {
 
   const top = await topScores(env, categoryId, day);
   return json({ ok: true, player, day, total: r.total, count: r.count, avg: r.avg, rank, allTimeRank, top });
+}
+
+// Answers outside the deck count only if /api/verify already accepted them,
+// so the client can't invent its own extra answers.
+async function verifiedExtras(env, category, entries, answers) {
+  const { lookup } = indexCategory(entries);
+  const keys = [...new Set(answers.map(norm).filter((k) => k && !lookup[k]))].slice(0, 90);
+  if (!keys.length) return {};
+  const { results } = await env.DB.prepare(
+    `SELECT answer, name, rarity FROM verified WHERE category = ?1 AND valid = 1 AND answer IN (${keys.map((_, i) => "?" + (i + 2)).join(",")})`
+  ).bind(category, ...keys).all();
+  const extra = {};
+  for (const r of results || []) extra[r.answer] = { name: r.name, rarity: r.rarity };
+  return extra;
 }
 
 async function topScores(env, category, day) {

@@ -8,3 +8,7 @@ pages_build_output_dir = "."
 binding = "DB"
 database_name = "rattle-db"
 database_id = "e19555ff-012c-41bd-bff1-0032f126828e"
+
+# Cloudflare Workers AI, available in functions as env.AI (checks unknown answers).
+[ai]
+binding = "AI"

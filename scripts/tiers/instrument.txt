@@ -1,0 +1,144 @@
+# Curated tiers for Musical Instruments. Everything not listed is ranked automatically.
+# Within a tier, put the most common first. Format:  Name | alias | alias
+
+## common
+Guitar | acoustic guitar | guitars
+Piano | pianoforte | grand piano
+Drum | drums | drum kit | drum set
+Violin | fiddle
+Flute
+Trumpet
+Saxophone | sax
+Electric guitar
+Clarinet
+Cello | violoncello
+Bass guitar | bass | electric bass
+Harp
+Trombone
+Tuba
+Ukulele | uke
+Harmonica | mouth organ
+Keyboard | electronic keyboard
+Xylophone
+Accordion
+Organ | pipe organ
+Banjo
+Tambourine
+Triangle
+
+## easy
+Viola
+Double bass | upright bass | contrabass | string bass
+French horn | horn
+Oboe
+Bassoon
+Piccolo
+Mandolin
+Bagpipes | bagpipe
+Recorder
+Cymbal | cymbals
+Synthesizer | synth
+Snare drum | snare
+Bass drum | kick drum
+Timpani | kettle drum | kettledrum
+Bongo drum | bongos | bongo
+Conga | congas
+Marimba
+Glockenspiel
+Harpsichord
+Kazoo
+Maracas | maraca
+Castanets
+Cowbell
+Bugle
+Cornet
+Sitar
+Didgeridoo
+Steelpan | steel drum | steel pan | steel drums
+Gong
+Bell | bells
+Lyre
+Lute
+Panpipes | pan flute | pan pipes
+
+## tricky
+Sousaphone
+Euphonium
+Baritone horn
+Mellophone
+Flugelhorn
+Celesta
+Vibraphone | vibes
+Zither
+Dulcimer | hammered dulcimer | Appalachian dulcimer
+Theremin
+Ocarina
+Djembe
+Tabla
+Bodhrán | bodhran
+Cajón | cajon
+Koto
+Shamisen
+Erhu
+Oud | ud
+Balalaika
+Bouzouki
+Concertina
+Melodica
+Autoharp
+Hurdy-gurdy | hurdy gurdy
+Harmonium
+Kalimba | thumb piano | mbira
+Washboard
+Tin whistle | penny whistle
+Handbells | handbell
+Chimes | tubular bells
+Clavichord
+Keytar
+Turntable | turntables
+Drum machine
+Spoons
+
+## rare
+Shakuhachi
+Sarod
+Mridangam
+Guzheng
+Pipa
+Kora
+Gamelan
+Duduk
+Kantele
+Charango
+Santoor
+Sarangi
+Tanpura | tambura
+Veena
+Sheng
+Dizi
+Hang | handpan
+Talking drum
+Steel guitar | pedal steel guitar | lap steel guitar
+Crumhorn
+Sackbut
+Glass harmonica | armonica
+Nyckelharpa
+Rebec
+Shofar
+Taiko
+Berimbau
+Udu
+Guiro | güiro
+Mouth harp | jaw harp | Jew's harp
+
+## exotic
+Serpent
+Ophicleide
+Ondes Martenot
+Hydraulophone
+Daxophone
+Waterphone
+Contrabassoon
+Heckelphone
+Octobass
+Theorbo

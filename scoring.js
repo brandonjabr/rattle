@@ -50,9 +50,22 @@ export function pointsFor(rank, maxR) {
   return Math.round(20 + 980 * Math.pow((rank - 1) / (maxR - 1), 1.3));
 }
 
+// Point range for each rarity tier. Used by the deck generator's curated tiers
+// and for answers the AI verifies at the end of a round.
+export const TIER_POINTS = {
+  common: [20, 140], easy: [160, 290], tricky: [310, 490],
+  rare: [510, 690], exotic: [710, 890], legendary: [910, 1000],
+};
+
+// Inverse of pointsFor() on the deck's 1..1000 rarity scale.
+export function rarityForPoints(p) {
+  return Math.max(1, Math.min(1000, Math.round(1 + 999 * Math.pow((p - 20) / 980, 1 / 1.3))));
+}
+
 // Score a whole round from a list of raw answer strings. Returns the base
 // score, the strategy bonuses, and the total. This is what the server runs.
-export function scoreRound(entries, answers) {
+// `extra` maps normalized answers to AI-verified entries ({ name, rarity }).
+export function scoreRound(entries, answers, extra = {}) {
   const { maxR, lookup } = indexCategory(entries);
   const seen = new Set();
   const items = [];
@@ -60,7 +73,7 @@ export function scoreRound(entries, answers) {
   for (const raw of (answers || [])) {
     const key = norm(raw);
     if (!key) continue;
-    const e = lookup[key];
+    const e = lookup[key] || extra[key];
     if (!e || seen.has(e.name)) continue;
     seen.add(e.name);
     const pts = pointsFor(e.rarity, maxR);

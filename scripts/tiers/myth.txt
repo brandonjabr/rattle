@@ -1,0 +1,169 @@
+# Curated tiers for Greek Gods & Heroes. Everything not listed is ranked automatically.
+# Within a tier, put the most common first. Format:  Name | alias | alias
+
+## common
+Zeus
+Hercules | Heracles | Herakles
+Poseidon
+Hades
+Athena | Athene | Pallas Athena
+Apollo
+Aphrodite
+Achilles
+Hermes
+Ares
+Artemis
+Hera
+Medusa
+Odysseus | Ulysses
+
+## easy
+Dionysus | Bacchus
+Demeter
+Persephone | Kore
+Hephaestus
+Hestia
+Perseus
+Theseus
+Jason
+Prometheus
+Pandora
+Atlas
+Cronus | Kronos | Cronos
+Gaia | Gaea
+Eros | Cupid
+Nike
+Helen of Troy | Helen
+Paris
+Hector
+Ajax
+Agamemnon
+Minotaur
+Pegasus
+Cerberus | Kerberos
+Narcissus
+Icarus
+Orpheus
+Lernaean Hydra | Hydra
+Cyclops | Cyclopes
+Polyphemus
+Pan
+Titans | Titan
+
+## tricky
+Uranus | Ouranos
+Rhea
+Nemesis
+Hecate | Hekate
+Nyx
+Chaos
+Helios
+Selene
+Eos
+Iris
+Hebe
+Morpheus
+Thanatos
+Hypnos
+Tyche
+Asclepius | Asklepios
+Calypso
+Circe
+Medea
+Ariadne
+Daedalus
+Oedipus
+Antigone
+Penelope
+Telemachus
+Patroclus
+Priam
+Cassandra
+Andromeda
+Bellerophon
+Atalanta
+Castor
+Pollux | Polydeuces
+Sisyphus
+Tantalus
+King Midas | Midas
+Echo
+Psyche
+Arachne
+Adonis
+Ganymede
+Charon
+Typhon
+Chimera | Chimaera
+Sphinx
+Scylla
+Charybdis
+Sirens | Siren
+Muses | Muse
+Moirai | Fates
+Erinyes | Furies
+Gorgons | Gorgon
+Harpy | Harpies
+Centaur | Centaurs
+Chiron
+Satyr | Satyrs
+Nymph | Nymphs
+Hyperion
+Oceanus
+Epimetheus
+Phobos
+Deimos
+Kratos | Cratos
+Aeneas
+
+## rare
+Metis
+Themis
+Mnemosyne
+Tethys
+Iapetus
+Coeus
+Phoebe
+Crius
+Theia
+Bia
+Zelus
+Hesperides
+Atropos
+Clotho
+Lachesis
+Tisiphone
+Alecto
+Megaera
+Eris
+Enyo
+Harmonia
+Leto
+Dione
+Maia
+Semele
+Europa
+Io
+Danaë | Danae
+Leda
+Callisto
+Actaeon
+Orion
+Endymion
+Tithonus
+Philoctetes
+Diomedes
+Nestor
+Menelaus
+Clytemnestra
+Orestes
+Electra
+Iphigenia
+Andromache
+Hecuba
+Laocoön | Laocoon
+Pylades
+Abaris the Hyperborean | Abaris
+
+## remove
+Achilles' heel

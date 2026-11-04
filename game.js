@@ -45,7 +45,7 @@ ringFg.style.strokeDashoffset = 0;
 let round = null, raf = null, lastRun = null, lastRank = null, lastAllRank = null;
 
 function startRound() {
-  round = { items: [], names: {}, base: 0, misses: 0, start: performance.now(), ended: false };
+  round = { items: [], names: {}, base: 0, pending: [], pendingKeys: {}, start: performance.now(), ended: false };
   startScreen.hidden = true; resultsScreen.hidden = true; gameScreen.hidden = false;
   chipsEl.innerHTML = ""; scoreEl.textContent = "0"; countEl.textContent = "0";
   $("catSmall").textContent = P.category.toLowerCase();
@@ -74,7 +74,16 @@ $("form").addEventListener("submit", (ev) => {
   if (!key) return;
 
   const entry = CAT.lookup[key];
-  if (!entry) { round.misses++; flash("Not on the list: " + raw.trim(), "bad"); return; }
+  if (!entry) {
+    // Not in the deck: keep it for the AI check at the end of the round.
+    const text = raw.trim().slice(0, 40);
+    if (round.pendingKeys[key]) { flash("Already saved: " + text, "warn"); return; }
+    round.pendingKeys[key] = true;
+    round.pending.push(text);
+    addChip(escapeHtml(text), "?", null);
+    flash("Saved for review: " + text, "pending");
+    return;
+  }
   if (round.names[entry.name]) { flash("Already got " + entry.name, "warn"); return; }
 
   const pts = pointsFor(entry.rarity, CAT.maxR), band = bandOf(pts);
@@ -84,6 +93,7 @@ $("form").addEventListener("submit", (ev) => {
 
   addChip(entry.name, pts, band);
   floatPoints(pts, band);
+  if (pts >= 510) burst(chipsEl.firstChild, pts, band);
   scoreEl.textContent = fmt(round.base);
   scoreEl.classList.remove("bump"); void scoreEl.offsetWidth; scoreEl.classList.add("bump");
   countEl.textContent = round.items.length;
@@ -93,9 +103,45 @@ $("form").addEventListener("submit", (ev) => {
 function flash(msg, cls) { feedbackEl.textContent = msg; feedbackEl.className = "feedback " + cls; }
 function addChip(name, pts, band) {
   const c = document.createElement("div");
-  c.className = "chip"; c.style.setProperty("--chip", band.color);
+  c.className = "chip" + (band ? "" : " pending");
+  if (band) c.style.setProperty("--chip", band.color);
   c.innerHTML = name + ' <span class="pts">' + pts + "</span>";
   chipsEl.insertBefore(c, chipsEl.firstChild);
+}
+// Explosion for Rare (510+), bigger for Exotic (710+) and Legendary (910+).
+function burst(el, pts, band) {
+  const level = pts >= 910 ? 3 : pts >= 710 ? 2 : 1;
+  const r = el.getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const colors = [band.color, band.color, "var(--c2)", level === 3 ? "var(--c5)" : band.color];
+  const add = (cls, style, life) => {
+    const d = document.createElement("div");
+    d.className = cls; d.style.cssText = "left:" + x + "px;top:" + y + "px;" + style;
+    floatLayer.appendChild(d);
+    setTimeout(() => d.remove(), life);
+    return d;
+  };
+
+  const n = [0, 16, 26, 40][level];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = 45 + Math.random() * (35 + level * 30);
+    add("spark" + (Math.random() < 0.35 ? " sq" : ""),
+      "--c:" + colors[i % colors.length] + ";--dx:" + (Math.cos(a) * dist).toFixed(1) + "px;--dy:" + (Math.sin(a) * dist).toFixed(1) + "px;" +
+      "--s:" + (5 + Math.random() * (3 + level * 2)).toFixed(1) + "px;--t:" + Math.round(550 + Math.random() * 350) + "ms;" +
+      "--rot:" + Math.round(Math.random() * 540 - 270) + "deg", 1000);
+  }
+  for (let k = 0; k < level; k++) {
+    add("shock", "--c:" + band.color + ";--k:" + (5 + level * 1.5 + k * 2) + ";animation-delay:" + k * 110 + "ms", 900 + k * 110);
+  }
+  add("burst-label" + (level === 3 ? " lv3" : ""), "--c:" + band.color, 1100).textContent = band.label.toUpperCase() + "!";
+
+  el.classList.add("boom");
+  if (level === 3) {
+    const app = document.querySelector(".app");
+    app.classList.remove("shake"); void app.offsetWidth; app.classList.add("shake");
+  }
+  if (navigator.vibrate) navigator.vibrate(level === 1 ? 15 : level === 2 ? [15, 30, 25] : [20, 30, 20, 30, 45]);
 }
 function floatPoints(pts, band) {
   const r = scoreEl.getBoundingClientRect();
@@ -111,7 +157,25 @@ function endRound() {
   if (round.ended) return;
   round.ended = true; cancelAnimationFrame(raf);
   guessEl.disabled = true; timerWrap.classList.remove("pulse");
+  gameScreen.hidden = true; resultsScreen.hidden = false;
+  lastRank = null; lastAllRank = null;
 
+  const total = renderResults(0);
+  if (total >= 3000) confetti();
+
+  $("shareBtn").textContent = "Share result";
+  $("shareBtn").onclick = doShare;
+
+  // leaderboard
+  resetLeaderboardUI();
+  loadLeaderboard("today");
+
+  renderReview(round.pending.map((answer) => ({ answer, state: "checking" })));
+  if (round.pending.length) verifyPending();
+}
+
+// Totals, breakdown and haul for the current round. Counts up from `from`.
+function renderResults(from) {
   const base = round.base, count = round.items.length;
   const avg = count ? Math.round(base / count) : 0;
   const volume = count * 50;
@@ -122,13 +186,11 @@ function endRound() {
 
   const dist = [0, 0, 0, 0, 0, 0];
   round.items.forEach((i) => { dist[BANDS.indexOf(i.band)]++; });
-  const haul = BANDS.map((b, i) => dist[i] ? b.emoji + dist[i] : "").filter(Boolean).join("  ");
 
   const best = saveBest(total);
-  lastRun = { categoryId: P.id, answers: round.items.map((i) => i.name), total, count, haul, dist };
-  lastRank = null; lastAllRank = null;
+  // Verified answers are sent as typed: the server matches them against its own verified table.
+  lastRun = { categoryId: P.id, answers: round.items.map((i) => i.raw || i.name), total, count, dist };
 
-  gameScreen.hidden = true; resultsScreen.hidden = false;
   $("finalSub").textContent = count + " named, avg " + avg + " pts" + (total >= best && total > 0 ? ", new best!" : ", best " + fmt(best));
   $("haul").innerHTML = haulCard(dist, round.items, count);
   $("breakdown").innerHTML =
@@ -137,16 +199,69 @@ function endRound() {
     row("Connoisseur bonus", purist, "avg " + avg) +
     row("Deep cuts", deep, deepN + " over 700 pts") +
     '<div class="brow total"><span>Total</span><span class="v" id="totalV">0</span></div>';
-  animateCount($("finalScore"), 0, total, 900);
-  animateCount($("totalV"), 0, total, 900);
-  if (total >= 3000) confetti();
+  animateCount($("finalScore"), from, total, 900);
+  animateCount($("totalV"), from, total, 900);
+  return total;
+}
 
-  $("shareBtn").textContent = "Share result";
-  $("shareBtn").onclick = doShare;
+// ---- answers saved for review (checked by AI in one batch) ----
+async function verifyPending() {
+  const pendingRound = round;
+  const btn = $("submitScore");
+  btn.disabled = true; btn.textContent = "Checking answers...";
+  let results = null;
+  try {
+    const res = await fetch("/api/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ categoryId: P.id, answers: pendingRound.pending })
+    });
+    if (!res.ok) throw new Error("http " + res.status);
+    results = (await res.json()).results;
+  } catch (e) { /* shown as "couldn't check" below */ }
+  if (round !== pendingRound) return;   // a new round started meanwhile
 
-  // leaderboard
-  resetLeaderboardUI();
-  loadLeaderboard("today");
+  const byKey = {};
+  for (const r of results || []) byKey[norm(r.answer)] = r;
+  const before = lastRun.total;
+  const rows = pendingRound.pending.map((answer) => {
+    const r = byKey[norm(answer)];
+    if (!r || r.unchecked) return { answer, state: "unchecked" };
+    if (!r.valid) return { answer, state: "rejected" };
+    if (round.names[r.name]) return { answer, state: "duplicate", name: r.name };
+    const pts = pointsFor(r.rarity, CAT.maxR), band = bandOf(pts);
+    round.items.push({ name: r.name, points: pts, band, raw: answer });
+    round.names[r.name] = true;
+    round.base += pts;
+    return { answer, state: "accepted", name: r.name, pts, band };
+  });
+  renderReview(rows);
+  if (rows.some((x) => x.state === "accepted")) renderResults(before);
+
+  if (btn.textContent === "Checking answers...") { btn.disabled = false; btn.textContent = "Post my score"; }
+}
+
+function renderReview(rows) {
+  const box = $("review");
+  box.hidden = !rows.length;
+  if (!rows.length) return;
+  const checking = rows.some((x) => x.state === "checking");
+  const label = {
+    checking: () => '<span class="rv-state">checking…</span>',
+    accepted: (x) => '<span class="rv-state ok" style="color:' + x.band.color + '">+' + x.pts + "</span>",
+    rejected: () => '<span class="rv-state no">didn\'t count</span>',
+    duplicate: (x) => '<span class="rv-state no">already had ' + escapeHtml(x.name) + "</span>",
+    unchecked: () => '<span class="rv-state no">couldn\'t check</span>',
+  };
+  const icon = { checking: "⏳", accepted: "✅", rejected: "❌", duplicate: "↩️", unchecked: "⚠️" };
+  box.innerHTML =
+    '<div class="haul-title">' + (checking ? "Saved for review, checking " + rows.length + "…" : "Reviewed answers") + "</div>" +
+    rows.map((x) =>
+      '<div class="rv-row' + (x.state === "checking" ? " busy" : "") + '"><span class="rv-icon">' + icon[x.state] + "</span>" +
+      '<span class="rv-answer">' + escapeHtml(x.answer) +
+      (x.name && norm(x.name) !== norm(x.answer) && x.state === "accepted" ? ' <span class="rv-as">as ' + escapeHtml(x.name) + "</span>" : "") +
+      "</span>" + label[x.state](x) + "</div>"
+    ).join("");
 }
 function row(label, val, tag) {
   return '<div class="brow"><span>' + label + ' <span class="tag">' + tag + '</span></span><span class="v">+' + fmt(val) + "</span></div>";
@@ -238,7 +353,7 @@ function animateCount(el, from, to, dur) {
 }
 function confetti() {
   const wrap = $("confetti"); wrap.innerHTML = "";
-  const cols = ["#2dd4bf", "#5fd36a", "#fbbf24", "#fb923c", "#ff6b8a", "#c084fc", "#ffffff"];
+  const cols = ["#5d81a8", "#6aaa64", "#c9a227", "#d07a3c", "#c4524a", "#8e6bb8", "#1d1b18"];
   for (let i = 0; i < 44; i++) {
     const s = document.createElement("i");
     s.style.left = Math.random() * 100 + "%";
@@ -265,7 +380,7 @@ function haulCard(dist, items, count) {
     bar += '<span style="flex:' + dist[i] + ';background:' + b.color + '"></span>';
     const names = items.filter((it) => it.band === b)
       .map((it) => esc(it.name.charAt(0).toUpperCase() + it.name.slice(1))).join(", ");
-    rows += '<div class="hrow"><span class="hemoji">' + b.emoji + '</span>' +
+    rows += '<div class="hrow"><span class="hsq" style="background:' + b.color + '"></span>' +
       '<span class="hcount" style="color:' + b.color + '">' + dist[i] + '</span>' +
       '<span class="hmain"><span class="hlabel">' + b.label + '</span>' +
       '<span class="hnames">' + names + '</span></span></div>';

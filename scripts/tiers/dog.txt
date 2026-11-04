@@ -1,0 +1,94 @@
+# Curated tiers for Dog Breeds. Everything not listed is ranked automatically.
+# Within a tier, put the most common first. Format:  Name | alias | alias
+
+## common
+Labrador Retriever | Labrador | Lab | Labs
+Golden Retriever | golden
+German Shepherd | German Shepherd Dog | Alsatian
+Poodle | Standard Poodle | Toy Poodle
+Bulldog | English Bulldog | British Bulldog
+Beagle
+Chihuahua
+Dachshund | wiener dog | sausage dog
+Pug
+Siberian Husky | Husky
+Rottweiler | Rottie
+Boxer
+Yorkshire Terrier | Yorkie
+Great Dane
+American Pit Bull Terrier | Pit Bull | Pitbull
+Dalmatian
+Pembroke Welsh Corgi | Corgi
+Shih Tzu
+Dobermann | Doberman | Doberman Pinscher
+
+## easy
+French Bulldog | Frenchie
+Border Collie
+Cocker Spaniel | American Cocker Spaniel | English Cocker Spaniel
+Pomeranian
+Maltese
+Bichon Frisé | Bichon Frise | Bichon
+St. Bernard | Saint Bernard
+Bernese Mountain Dog | Bernese
+Australian Shepherd | Aussie
+Greyhound
+Boston Terrier
+Shiba Inu | Shiba
+Akita | Akita Inu
+Rough Collie | Collie | Lassie
+Bloodhound
+Basset Hound | Basset
+Newfoundland | Newfie
+English Mastiff | Mastiff
+Jack Russell Terrier | Jack Russell
+Miniature Schnauzer | Schnauzer
+Weimaraner
+Chow Chow | Chow
+Cavalier King Charles Spaniel | Cavalier
+Samoyed
+Shar Pei | Shar-Pei
+Whippet
+Great Pyrenees | Pyrenean Mountain Dog
+Irish Setter
+Bull Terrier
+Labradoodle
+Goldendoodle
+Cockapoo
+Maltipoo
+
+## tricky
+Shetland Sheepdog | Sheltie
+Vizsla
+Havanese
+Papillon
+Lhasa Apso
+Pekingese
+Afghan Hound
+Saluki
+Irish Wolfhound
+Staffordshire Bull Terrier | Staffy | Staffie
+West Highland White Terrier | Westie
+Scottish Terrier | Scottie
+Airedale Terrier | Airedale
+Old English Sheepdog
+Bullmastiff
+Cane Corso
+Belgian Malinois | Malinois
+Alaskan Malamute | Malamute
+Australian Cattle Dog | Blue Heeler | Heeler
+Rhodesian Ridgeback
+Dogo Argentino
+Basenji
+Xoloitzcuintle | Xolo | Mexican Hairless Dog
+Chinese Crested
+Italian Greyhound
+Pointer | English Pointer
+German Shorthaired Pointer
+Springer Spaniel | English Springer Spaniel
+Brittany | Brittany Spaniel
+Keeshond
+Borzoi
+Leonberger
+Komondor
+Puli

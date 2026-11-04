@@ -1,163 +1,348 @@
 /*
  * Rattle deck generator.
  *
- * Pulls every member of each category from Wikidata (authoritative, not an LLM's
- * memory) and ranks rarity by Wikidata sitelink count (how many Wikipedia
- * languages cover it — a good notability proxy). More sitelinks = more common =
- * lower rarity rank. Writes ../deck.js.
+ * Coverage: every category merges Wikidata class queries with Wikipedia's own
+ * "List of ..." pages, joined on the English Wikipedia article they point to.
  *
- * Run:  node scripts/build-deck.mjs
- * Needs internet. Works on Node 14+ (uses node:https, not fetch).
+ * Rarity, in two layers:
+ *   1. Automatic, for the long tail: a blend of the article's English Wikipedia
+ *      pageviews (last 12 months) and how many Wikipedias cover it (sitelinks).
+ *   2. Curated, for the well-known head: scripts/tiers/<id>.txt pins answers to a
+ *      tier (common .. legendary) and adds any the sources missed. Edit those files
+ *      to fix a ranking or a missing answer, then re-run.
+ *
+ * Run:  node scripts/build-deck.mjs     (Node 18+, needs internet)
+ * API results are cached in node_modules/.cache/rattle-deck, so re-runs are fast.
+ * Delete that folder to refresh pageviews.
  */
-import https from "node:https";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { norm, pointsFor, bandOf, TIER_POINTS as TIERS, rarityForPoints } from "../scoring.js";
 
-const UA = "RattleGame/1.0 (https://github.com/brandonjabr/rattle; brandonjabr@gmail.com)";
-const DECK_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "deck.js");
+const UA = "RattleGame/1.0 (https://rattle.pages.dev; brandonjabr@gmail.com)";
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const CACHE_DIR = join(ROOT, "node_modules", ".cache", "rattle-deck");
+const MAX_R = 1000;
 
-// Per-category source. `sparql` must bind ?item. `min` = sitelink floor (noise cut),
-// `max` = how many to keep (top by sitelinks). `stop` = exact names to drop (abstract
-// classes). Tune these over time.
+// `wikidata` must bind ?item. `lists` are English Wikipedia list pages.
+// `stop` drops abstract class names that are not real answers.
 const CATS = [
-  { id: "fruit", category: "Fruits", min: 4, max: 140,
-    sparql: "?item wdt:P279* wd:Q3314483 .", // edible fruit (types)
-    stop: ["fruit","edible fruit","false fruit","accessory fruit","aggregate fruit","multiple fruit","stone fruit","berry","drupe","pome","citrus","vegetable","nut","seed"] },
+  { id: "fruit", category: "Fruits",
+    wikidata: "{ ?item wdt:P279* wd:Q3314483 } UNION { ?item wdt:P279/wdt:P279? wd:Q1364 }",
+    lists: ["List of culinary fruits"],
+    stop: ["fruit","edible fruit","false fruit","accessory fruit","aggregate fruit","multiple fruit","simple fruit",
+           "stone fruit","berry","drupe","pome","citrus","hesperidium","pepo","achene","capsule","legume","nut",
+           "seed","vegetable","fruit vegetable","dried fruit","schizocarp","samara","caryopsis","follicle","silique"] },
 
-  { id: "country", category: "Countries", min: 12, max: 200,
-    sparql: "?item wdt:P463 wd:Q1065 .", // member of the United Nations
-    stop: [],
-    // Common abbreviations Wikidata only stores mangled (e.g. "U. S. A."), added by exact name.
-    extraAliases: {
-      "United States": ["USA", "US", "America"],
-      "United Kingdom": ["UK", "Britain", "Great Britain"],
-      "United Arab Emirates": ["UAE"],
-      "Democratic Republic of the Congo": ["DRC", "Congo", "DR Congo"],
-      "Republic of the Congo": ["Congo-Brazzaville"],
-      "North Korea": ["DPRK"],
-      "Czech Republic": ["Czechia"],
-      "Kingdom of the Netherlands": ["Netherlands", "Holland"],
-    } },
+  { id: "country", category: "Countries",
+    wikidata: "?item wdt:P463 wd:Q1065 . FILTER NOT EXISTS { ?item wdt:P576 ?end }",
+    lists: [], stop: [] },
 
-  { id: "element", category: "Chemical Elements", min: 2, max: 120,
-    sparql: "?item wdt:P31 wd:Q11344 .", // chemical element
-    stop: ["chemical element"] },
+  { id: "element", category: "Chemical Elements",
+    wikidata: "?item wdt:P31 wd:Q11344 ; wdt:P1086 ?z . FILTER(?z <= 118)",
+    lists: [], stop: ["chemical element"] },
 
-  { id: "dog", category: "Dog Breeds", min: 3, max: 170,
-    sparql: "?item wdt:P31 wd:Q39367 .", // dog breed
+  { id: "dog", category: "Dog Breeds",
+    wikidata: "?item wdt:P31 wd:Q39367 .",
+    lists: ["List of dog breeds"],
     stop: ["dog","dog breed","dog type","landrace","dog crossbreed"] },
 
-  { id: "instrument", category: "Musical Instruments", min: 5, max: 180,
-    sparql: "{ ?item wdt:P279* wd:Q34379 } UNION { ?item wdt:P31/wdt:P279* wd:Q34379 }",
-    stop: ["musical instrument","string instrument","wind instrument","percussion instrument",
-           "keyboard instrument","brass instrument","woodwind instrument","chordophone","aerophone",
-           "idiophone","membranophone","electrophone","lamellophone","free aerophone","plucked string instrument",
-           "bowed string instrument","wind","reed","flute family","lute","electronic musical instrument"] },
+  { id: "instrument", category: "Musical Instruments",
+    wikidata: "{ ?item wdt:P279* wd:Q34379 } UNION { ?item wdt:P31/wdt:P279* wd:Q34379 }",
+    lists: ["List of musical instruments"],
+    stop: ["musical instrument","string instrument","wind instrument","percussion instrument","keyboard instrument",
+           "brass instrument","woodwind instrument","chordophone","aerophone","idiophone","membranophone",
+           "electrophone","lamellophone","free aerophone","plucked string instrument","bowed string instrument",
+           "electronic musical instrument","drum kit","hornbostel sachs","musical ensemble"] },
 
-  { id: "myth", category: "Greek Gods & Heroes", min: 4, max: 280,
-    sparql: "VALUES ?cls { wd:Q22989102 wd:Q22988604 wd:Q23015925 } ?item wdt:P31 ?cls .",
-    stop: ["greek deity","greek mythology"] },
+  { id: "myth", category: "Greek Gods & Heroes",
+    // Members of these classes or any subclass (e.g. Olympian god -> Greek deity).
+    // Expanded in two steps: Wikidata times out on the combined path query.
+    wikidataRoots: ["Q22989102", "Q22988604", "Q23015925"],
+    lists: ["List of Greek deities", "List of mortals in Greek mythology", "List of Greek mythological creatures"],
+    stop: ["greek deity","greek mythology","twelve olympians","titans","primordial deities"] },
 
-  { id: "sport", category: "Sports", min: 5, max: 150,
-    sparql: "?item wdt:P31 wd:Q31629 .", // type of sport
-    stop: ["sport","team sport","individual sport","ball game","racquet sport","racket sport",
-           "water sport","winter sport","combat sport","motorsport","mind sport","bat-and-ball game",
-           "football","code of football","invasion game","net sport","target sport","cue sport"] },
+  { id: "sport", category: "Sports",
+    wikidata: "?item wdt:P31 wd:Q31629 .",
+    lists: ["List of sports"],
+    stop: ["sport","sports","team sport","individual sport","ball game","racquet sport","racket sport","water sport",
+           "winter sport","combat sport","motorsport","mind sport","bat and ball game","football","code of football",
+           "invasion game","net sport","target sport","cue sport","dance","dancing","extreme sport","esports"] },
 ];
 
-const norm = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
-  .replace(/[^a-z0-9]+/g, " ").trim();
+
+// ---------- small utilities ----------
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const chunk = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
+const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const stripParen = (s) => s.replace(/\s*\([^)]*\)\s*$/, "").trim();
+const badName = (s) => !s || /[\/:]|\d/.test(s) || s.length > 40 || /^Q\d+$/.test(s);
 
-function fetchOnce(query) {
-  const url = "https://query.wikidata.org/sparql?format=json&query=" + encodeURIComponent(query);
-  return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { Accept: "application/sparql-results+json", "User-Agent": UA } }, (res) => {
-      if (res.statusCode !== 200) {
-        const err = new Error("HTTP " + res.statusCode);
-        err.status = res.statusCode;
-        err.retryAfter = +res.headers["retry-after"] || 0;
-        res.resume();
-        return reject(err);
-      }
-      let data = ""; res.on("data", (c) => (data += c));
-      res.on("end", () => { try { resolve(JSON.parse(data).results.bindings); } catch (e) { reject(e); } });
-    });
-    req.on("error", reject);
-    req.setTimeout(120000, () => { req.destroy(new Error("timeout")); });
-  });
+async function getJSON(url, init = {}) {
+  let wait = 2000;
+  for (let attempt = 1; ; attempt++) {
+    let res;
+    try {
+      res = await fetch(url, { ...init, headers: { "User-Agent": UA, Accept: "application/json", ...(init.headers || {}) } });
+    } catch (e) {
+      if (attempt >= 6) throw e;
+      await sleep(wait); wait *= 2; continue;
+    }
+    if (res.ok) return res.json();
+    if (res.status === 404) return null;
+    if (![429, 500, 502, 503, 504].includes(res.status) || attempt >= 6) throw new Error(`HTTP ${res.status} for ${url.slice(0, 120)}`);
+    const ra = +res.headers.get("retry-after");
+    await sleep(ra ? ra * 1000 : wait); wait = Math.min(wait * 2, 60000);
+  }
 }
 
-// Retry on rate-limit / transient errors with exponential backoff.
+async function pool(items, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const k = i++; await fn(items[k], k); } }));
+}
+
+function loadCache(name) {
+  const f = join(CACHE_DIR, name + ".json");
+  return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : {};
+}
+function saveCache(name, data) {
+  mkdirSync(CACHE_DIR, { recursive: true });
+  writeFileSync(join(CACHE_DIR, name + ".json"), JSON.stringify(data));
+}
+
+// ---------- sources ----------
+
 async function sparql(query) {
-  let wait = 3000;
-  for (let attempt = 1; attempt <= 6; attempt++) {
-    try {
-      return await fetchOnce(query);
-    } catch (e) {
-      const transient = e.status === 429 || e.status === 503 || e.status === 500 || e.message === "timeout";
-      if (!transient || attempt === 6) throw e;
-      const delay = (e.retryAfter ? e.retryAfter * 1000 : wait);
-      process.stdout.write(`(${e.message}, retry in ${Math.round(delay / 1000)}s) `);
-      await sleep(delay);
-      wait = Math.min(wait * 2, 60000);
+  const body = "query=" + encodeURIComponent(query);
+  const j = await getJSON("https://query.wikidata.org/sparql", {
+    method: "POST", body,
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/sparql-results+json" },
+  });
+  return j.results.bindings;
+}
+
+// Wikidata members that have an English Wikipedia article.
+async function fromWikidata(cat) {
+  let pattern = cat.wikidata;
+  if (cat.wikidataRoots) {
+    const roots = cat.wikidataRoots.map((q) => "wd:" + q).join(" ");
+    const subs = await sparql(`SELECT DISTINCT ?cls WHERE { VALUES ?root { ${roots} } ?cls wdt:P279* ?root }`);
+    pattern = `VALUES ?cls { ${subs.map((b) => "wd:" + b.cls.value.split("/").pop()).join(" ")} } ?item wdt:P31 ?cls .`;
+  }
+  if (!pattern) return [];
+  const rows = await sparql(`SELECT ?item ?name ?title (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?alts) WHERE {
+  ${pattern}
+  ?art schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> ; schema:name ?title .
+  OPTIONAL { ?item rdfs:label ?name . FILTER(LANG(?name) = "en") }
+  OPTIONAL { ?item skos:altLabel ?alt . FILTER(LANG(?alt) = "en") }
+} GROUP BY ?item ?name ?title`);
+  return rows.map((b) => ({
+    name: b.name?.value || stripParen(b.title.value),
+    title: b.title.value,
+    aliases: (b.alts?.value || "").split("|").filter(Boolean),
+    fromList: false,
+  }));
+}
+
+// First link of each table row / bullet on a Wikipedia list page.
+async function fromList(page) {
+  const j = await getJSON("https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&prop=wikitext&redirects=1&page=" + encodeURIComponent(page));
+  if (!j?.parse) { console.warn(`  ! list page missing: ${page}`); return []; }
+  const text = j.parse.wikitext.split(/^==\s*(?:See also|References|Notes|External links|Further reading|Sources)\s*==/m)[0];
+  const re = /^(?:\|\||\||\*+|#+)\s*(?:'')?\s*\[\[([^\]|#]+)(?:\|([^\]]+))?\]\]/gm;
+  const out = [];
+  let m;
+  while ((m = re.exec(text))) {
+    const title = m[1].trim();
+    if (/:/.test(title)) continue;
+    out.push({ name: (m[2] || title).replace(/''/g, "").trim(), title, aliases: [], fromList: true });
+  }
+  return out;
+}
+
+// Follow redirects; get each article's Wikidata item and whether it is a disambiguation page.
+async function resolveTitles(titles) {
+  const cache = loadCache("titles");
+  const todo = [...new Set(titles)].filter((t) => !(t in cache));
+  for (const batch of chunk(todo, 50)) {
+    const j = await getJSON("https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&redirects=1" +
+      "&prop=pageprops&ppprop=wikibase_item|disambiguation&titles=" + encodeURIComponent(batch.join("|")));
+    const step = {};
+    for (const n of j.query?.normalized || []) step[n.from] = n.to;
+    for (const r of j.query?.redirects || []) step[r.from] = r.to;
+    const pages = {};
+    for (const p of j.query?.pages || []) pages[p.title] = p;
+    for (const t of batch) {
+      let cur = t;
+      for (let k = 0; k < 5 && step[cur]; k++) cur = step[cur];
+      const p = pages[cur];
+      cache[t] = !p || p.missing || p.invalid ? null
+        : { title: p.title, qid: p.pageprops?.wikibase_item || null, disambig: p.pageprops?.disambiguation !== undefined };
     }
   }
+  saveCache("titles", cache);
+  return cache;
 }
 
-function buildQuery(cat) {
-  return `SELECT ?item ?name ?sitelinks (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?alts) WHERE {
-  ${cat.sparql}
-  ?item wikibase:sitelinks ?sitelinks . FILTER(?sitelinks >= ${cat.min})
-  ?item rdfs:label ?name . FILTER(LANG(?name) = "en")
-  OPTIONAL { ?item skos:altLabel ?alt . FILTER(LANG(?alt) = "en") }
-}
-GROUP BY ?item ?name ?sitelinks
-ORDER BY DESC(?sitelinks)
-LIMIT ${cat.max * 6}`;
+// Monthly English Wikipedia pageviews, summed over the last 12 full months.
+async function pageviews(titles) {
+  const now = new Date();
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
+  const start = new Date(Date.UTC(end.getUTCFullYear() - 1, end.getUTCMonth() + 1, 1));
+  const ymd = (d) => d.toISOString().slice(0, 10).replace(/-/g, "");
+  const range = ymd(start) + "-" + ymd(end);
+  const cache = loadCache("pageviews-" + range);
+  const todo = [...new Set(titles)].filter((t) => !(t in cache));
+  let done = 0;
+  await pool(todo, 12, async (t) => {
+    const url = "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/" +
+      encodeURIComponent(t.replace(/ /g, "_")) + `/monthly/${ymd(start)}/${ymd(end)}`;
+    const j = await getJSON(url);
+    cache[t] = (j?.items || []).reduce((s, i) => s + i.views, 0);
+    if (++done % 500 === 0) { process.stdout.write(`    pageviews ${done}/${todo.length}\n`); saveCache("pageviews-" + range, cache); }
+  });
+  saveCache("pageviews-" + range, cache);
+  return cache;
 }
 
-function badName(s) { return !s || /[()\/:]|\d/.test(s) || s.length > 40 || /^Q\d+$/.test(s); }
+async function sitelinks(qids) {
+  const cache = loadCache("sitelinks");
+  const todo = [...new Set(qids)].filter((q) => q && !(q in cache));
+  for (const batch of chunk(todo, 400)) {
+    const rows = await sparql(`SELECT ?item ?n WHERE { VALUES ?item { ${batch.map((q) => "wd:" + q).join(" ")} } ?item wikibase:sitelinks ?n }`);
+    for (const q of batch) cache[q] = 0;
+    for (const b of rows) cache[b.item.value.split("/").pop()] = +b.n.value;
+    await sleep(500);
+  }
+  saveCache("sitelinks", cache);
+  return cache;
+}
+
+// ---------- curated tiers ----------
+
+// scripts/tiers/<id>.txt:  "## common" headings, then "Name | alias | alias" lines.
+function loadTiers(id) {
+  const f = join(ROOT, "scripts", "tiers", id + ".txt");
+  const tiers = {}; const remove = [];
+  if (!existsSync(f)) return { tiers, remove };
+  let cur = null;
+  for (const raw of readFileSync(f, "utf8").split("\n")) {
+    const line = raw.trim();
+    const h = line.match(/^##\s*(\w+)/);
+    if (h) { cur = h[1].toLowerCase(); continue; }
+    if (!line || line.startsWith("#")) continue;
+    const parts = line.split("|").map((s) => s.trim()).filter(Boolean);
+    if (cur === "remove") remove.push(...parts);
+    else if (TIERS[cur]) (tiers[cur] ||= []).push(parts);
+  }
+  return { tiers, remove };
+}
+
+// ---------- build one category ----------
+
+const quantile = (sorted, q) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] : 0;
 
 async function buildCategory(cat) {
-  const rows = await sparql(buildQuery(cat));
+  const raw = [...await fromWikidata(cat)];
+  for (const page of cat.lists) raw.push(...await fromList(page));
+
+  const resolved = await resolveTitles(raw.map((r) => r.title));
   const stop = new Set(cat.stop.map(norm));
-  const seen = new Set();
-  const out = [];
-  for (const b of rows) {
-    const name = (b.name?.value || "").trim();
-    if (badName(name)) continue;
-    const key = norm(name);
-    if (!key || seen.has(key) || stop.has(key)) continue;
-    seen.add(key);
-    const extra = (cat.extraAliases && cat.extraAliases[name]) || [];
-    let aliases = [...extra, ...(b.alts?.value || "").split("|").map((a) => a.trim())]
-      .filter((a) => a && !badName(a) && norm(a) !== key);
-    // de-dupe aliases (curated extras first), cap at 8 — aliases only aid matching
-    const akeys = new Set();
-    aliases = aliases.filter((a) => { const k = norm(a); if (akeys.has(k)) return false; akeys.add(k); return true; }).slice(0, 8);
-    out.push({ name, sitelinks: +b.sitelinks.value, aliases });
+
+  // One entry per Wikipedia article.
+  const byTitle = new Map();
+  for (const r of raw) {
+    const info = resolved[r.title];
+    if (!info || info.disambig) continue;
+    let e = byTitle.get(info.title);
+    if (!e) { e = { title: info.title, qid: info.qid, name: null, listName: null, aliases: new Set() }; byTitle.set(info.title, e); }
+    if (r.fromList && !e.listName && !badName(r.name)) e.listName = r.name;
+    if (!r.fromList && !e.name && !badName(r.name)) e.name = r.name;
+    for (const a of [r.name, ...r.aliases, stripParen(info.title)]) if (!badName(a)) e.aliases.add(a);
   }
-  out.sort((a, b) => b.sitelinks - a.sitelinks || a.name.localeCompare(b.name));
-  const kept = out.slice(0, cat.max);
-  return kept.map((e, i) => {
-    const o = { name: e.name, rarity: i + 1 };
-    if (e.aliases.length) o.aliases = e.aliases;
-    return o;
+
+  let entries = [];
+  for (const e of byTitle.values()) {
+    const name = stripParen(e.listName || e.name || e.title);
+    if (badName(name) || stop.has(norm(name))) continue;
+    entries.push({ name: cap1(name), title: e.title, qid: e.qid, aliases: [...e.aliases].map(stripParen) });
+  }
+
+  // Automatic rarity from pageviews + sitelinks.
+  const views = await pageviews(entries.map((e) => e.title));
+  const links = await sitelinks(entries.map((e) => e.qid));
+  const lv = entries.map((e) => Math.log10((views[e.title] || 0) + 1));
+  const ls = entries.map((e) => Math.log10((links[e.qid] || 0) + 1));
+  const scale = (arr) => {
+    const s = [...arr].sort((a, b) => a - b), lo = quantile(s, 0.03), hi = quantile(s, 0.97);
+    return arr.map((v) => Math.max(0, Math.min(1, (v - lo) / ((hi - lo) || 1))));
+  };
+  const nv = scale(lv), ns = scale(ls);
+  // The tier files cover the well-known answers, so anything left to the automatic
+  // ranking scores at least Tricky; within that range, more views/sitelinks = fewer points.
+  const [autoLo] = TIERS.tricky;
+  entries.forEach((e, i) => {
+    const common = 0.6 * nv[i] + 0.4 * ns[i];
+    const p = 20 + 980 * Math.pow(1 - common, 1.3);
+    e.rarity = rarityForPoints(autoLo + (p - 20) * (1000 - autoLo) / 980);
   });
+
+  // Same display name from two articles: keep the more common one.
+  const byName = new Map();
+  for (const e of entries) {
+    const k = norm(e.name), prev = byName.get(k);
+    if (!prev || e.rarity < prev.rarity) byName.set(k, e);
+  }
+  entries = [...byName.values()];
+
+  // Curated tiers pin rarity (and rename / add aliases / add missing answers).
+  const { tiers, remove } = loadTiers(cat.id);
+  const find = (parts) => {
+    const keys = parts.map(norm);
+    return entries.find((e) => keys.includes(norm(e.name))) ||
+           entries.find((e) => e.aliases.some((a) => keys.includes(norm(a))));
+  };
+  const removeKeys = new Set(remove.map(norm));
+  entries = entries.filter((e) => !removeKeys.has(norm(e.name)));
+  const added = [];
+  for (const [tier, lines] of Object.entries(tiers)) {
+    const [lo, hi] = TIERS[tier];
+    lines.forEach((parts, i) => {
+      const pts = lo + (hi - lo) * (lines.length > 1 ? i / (lines.length - 1) : 0);
+      let e = find(parts);
+      if (!e) { e = { name: parts[0], aliases: [] }; entries.push(e); added.push(parts[0]); }
+      // Curated aliases go first so the alias cap below never drops them.
+      e.aliases = [...parts.slice(1), ...(norm(e.name) !== norm(parts[0]) ? [e.name] : []), ...e.aliases];
+      e.name = parts[0];
+      e.rarity = rarityForPoints(pts);
+      e.pinned = true;
+    });
+  }
+
+  // Make sure the rarest entry sits at MAX_R so pointsFor() spans 20..1000.
+  entries.sort((a, b) => a.rarity - b.rarity || a.name.localeCompare(b.name));
+  const last = entries[entries.length - 1];
+  if (last && last.rarity < MAX_R) last.rarity = MAX_R;
+
+  // Tidy aliases: unique, not the name itself, a handful is plenty.
+  for (const e of entries) {
+    const seen = new Set([norm(e.name)]);
+    e.aliases = e.aliases.filter((a) => { const k = norm(a); if (!k || seen.has(k)) return false; seen.add(k); return true; }).slice(0, 10);
+  }
+  return { entries, added };
 }
 
 function serialize(deck) {
-  let js = "/* Rattle deck — generated from Wikidata, rarity ranked by sitelink count.\n" +
-           "   Regenerate with: node scripts/build-deck.mjs  (do not hand-edit) */\n" +
+  let js = "/* Rattle deck, generated by scripts/build-deck.mjs from Wikidata + Wikipedia lists,\n" +
+           "   ranked by pageviews/sitelinks with curated tiers from scripts/tiers/. Do not hand-edit. */\n" +
            "export const DECK = [\n";
   for (const d of deck) {
     js += `  { id: ${JSON.stringify(d.id)}, category: ${JSON.stringify(d.category)}, entries: [\n`;
     for (const e of d.entries) {
       const parts = [`name: ${JSON.stringify(e.name)}`, `rarity: ${e.rarity}`];
-      if (e.aliases) parts.push(`aliases: ${JSON.stringify(e.aliases)}`);
+      if (e.aliases.length) parts.push(`aliases: ${JSON.stringify(e.aliases)}`);
       js += `    { ${parts.join(", ")} },\n`;
     }
     js += "  ]},\n";
@@ -165,25 +350,22 @@ function serialize(deck) {
   return js + "];\n";
 }
 
-const CHECK = { myth: ["Kratos", "Deimos", "Zeus", "Achilles", "Heracles", "Medusa"], instrument: ["Oud", "Guitar", "Theremin"], fruit: ["Durian", "Apple"], country: ["Tuvalu", "France"] };
-
 async function main() {
+  const only = process.argv[2];
   const deck = [];
   for (const cat of CATS) {
-    process.stdout.write(`• ${cat.category} … `);
-    try {
-      const entries = await buildCategory(cat);
-      deck.push({ id: cat.id, category: cat.category, entries });
-      const names = new Set(entries.map((e) => e.name.toLowerCase()));
-      const present = (CHECK[cat.id] || []).map((n) => (names.has(n.toLowerCase()) ? n : "✗" + n));
-      console.log(`${entries.length} entries` + (present.length ? `  [${present.join(" ")}]` : ""));
-    } catch (e) {
-      console.log("FAILED: " + e.message);
-      throw e;
+    console.log(`• ${cat.category}`);
+    const { entries, added } = await buildCategory(cat);
+    deck.push({ id: cat.id, category: cat.category, entries });
+    const bands = {};
+    for (const e of entries) { const b = bandOf(pointsFor(e.rarity, MAX_R)).label; bands[b] = (bands[b] || 0) + 1; }
+    console.log(`    ${entries.length} entries  ` + Object.entries(bands).map(([k, v]) => `${k} ${v}`).join(", "));
+    if (added.length) console.log(`    added from tiers file (not in sources): ${added.join(", ")}`);
+    if (only && only === cat.id) {
+      for (const e of entries.slice(0, 200)) console.log(`      ${pointsFor(e.rarity, MAX_R)}\t${e.pinned ? "*" : " "} ${e.name}`);
     }
-    await sleep(2500); // be polite to Wikidata between categories
   }
-  writeFileSync(DECK_PATH, serialize(deck));
-  console.log("\nWrote " + DECK_PATH);
+  writeFileSync(join(ROOT, "deck.js"), serialize(deck));
+  console.log("\nWrote deck.js");
 }
 main().catch((e) => { console.error(e); process.exit(1); });

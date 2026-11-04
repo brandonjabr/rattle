@@ -1,0 +1,107 @@
+# Curated tiers for Fruits. Everything not listed is ranked automatically.
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+Apple | apples
+Banana | bananas
+Orange | oranges
+Strawberry | strawberries
+Grape | grapes
+Watermelon | watermelons
+Lemon | lemons
+Cherry | cherries
+Pineapple | pineapples
+Peach | peaches
+Pear | pears
+Mango | mangoes | mangos
+Blueberry | blueberries
+
+## easy
+Lime | limes
+Raspberry | raspberries
+Kiwifruit | kiwi | kiwis | kiwi fruit
+Plum | plums
+Coconut | coconuts
+Avocado | avocados
+Cantaloupe | cantaloupes | rockmelon
+Grapefruit | grapefruits
+Blackberry | blackberries
+Tomato | tomatoes
+Apricot | apricots
+Cranberry | cranberries
+Melon | melons
+Honeydew | honeydew melon
+Tangerine | tangerines
+Clementine | clementines
+Nectarine | nectarines
+Pomegranate | pomegranates
+Papaya | papayas
+Mandarin orange | mandarin | mandarins
+Fig | figs
+
+## tricky
+Date | dates
+Passion fruit | passionfruit
+Dragon fruit | pitaya | pitahaya
+Guava | guavas
+Lychee | lychees | litchi
+Olive | olives
+Plantain | plantains
+Star fruit | carambola | starfruit
+Persimmon | persimmons
+Kumquat | kumquats
+Gooseberry | gooseberries
+Mulberry | mulberries
+Jackfruit
+Elderberry | elderberries
+Blackcurrant | black currant | currant | currants
+Boysenberry | boysenberries
+Quince | quinces
+Tamarind
+Breadfruit
+Huckleberry | huckleberries
+Blood orange
+Prickly pear | cactus pear
+Acai | açaí | acai berry
+
+## rare
+Durian
+Rambutan
+Mangosteen
+Longan
+Loquat
+Yuzu
+Lingonberry | lingonberries
+Soursop | guanabana
+Cherimoya | custard apple
+Feijoa | pineapple guava
+Physalis | ground cherry | cape gooseberry
+Kiwano | horned melon
+Ugli fruit | ugli
+Pawpaw | asimina
+Sapodilla
+Ackee
+Cloudberry | cloudberries
+Goji | goji berry | wolfberry
+Salak | snake fruit
+Jujube
+Pomelo
+
+## exotic
+Jabuticaba
+Medlar
+Buddha's hand
+Finger lime
+Miracle fruit | miracle berry
+Noni
+Marula
+Bilberry
+Santol
+Mamey sapote | mamey
+Langsat | lanzones
+Cupuaçu | cupuacu
+Bael
+Salmonberry
+
+## remove

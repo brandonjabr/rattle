@@ -1,0 +1,72 @@
+# Curated tiers for Chemical Elements. Everything not listed is ranked automatically.
+# Within a tier, put the most common first. Format:  Name | alias | alias
+
+## common
+Oxygen | O
+Hydrogen | H
+Carbon | C
+Gold | Au
+Iron | Fe
+Silver | Ag
+Nitrogen | N
+Helium | He
+Copper | Cu
+Aluminium | aluminum | Al
+Lead | Pb
+Sodium | Na
+Calcium | Ca
+Zinc | Zn
+Uranium | U
+
+## easy
+Neon | Ne
+Chlorine | Cl
+Mercury | Hg | quicksilver
+Platinum | Pt
+Tin | Sn
+Potassium | K
+Magnesium | Mg
+Nickel | Ni
+Sulfur | sulphur | S
+Silicon | Si
+Titanium | Ti
+Lithium | Li
+Plutonium | Pu
+Iodine | I
+Fluorine | F
+Phosphorus | P
+Argon | Ar
+Radon | Rn
+Cobalt | Co
+Tungsten | W | wolfram
+Chromium | Cr
+
+## tricky
+Krypton | Kr
+Xenon | Xe
+Boron | B
+Radium | Ra
+Arsenic | As
+Caesium | cesium | Cs
+Beryllium | Be
+Manganese | Mn
+Barium | Ba
+Strontium | Sr
+Bismuth | Bi
+Palladium | Pd
+Polonium | Po
+Iridium | Ir
+Osmium | Os
+Francium | Fr
+Thorium | Th
+Selenium | Se
+Bromine | Br
+Cadmium | Cd
+Antimony | Sb
+Vanadium | V
+Germanium | Ge
+Gallium | Ga
+Rubidium | Rb
+Molybdenum | Mo
+Americium | Am
+Einsteinium | Es

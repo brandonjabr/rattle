@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler pages dev .",
+    "build:deck": "node scripts/build-deck.mjs",
     "deploy": "wrangler pages deploy . --project-name rattle",
     "db:init": "wrangler d1 execute rattle-db --remote --file=./schema.sql",
     "db:init:local": "wrangler d1 execute rattle-db --local --file=./schema.sql"

@@ -1,0 +1,176 @@
+# Curated tiers for Sports. Everything not listed is ranked automatically.
+# Within a tier, put the most common first. Format:  Name | alias | alias
+
+## common
+Association football | soccer | football | futbol | footy
+Basketball | hoops
+Baseball
+American football | gridiron | NFL
+Tennis
+Golf
+Ice hockey | hockey
+Volleyball
+Swimming
+Boxing
+Running
+Cycling | biking | bike racing
+Skiing | alpine skiing
+Wrestling
+Gymnastics
+Track and field | athletics
+Rugby union | rugby
+Cricket
+Bowling | ten-pin bowling | tenpin bowling
+Softball
+Surfing
+Skateboarding
+Snowboarding
+
+## easy
+Lacrosse
+Badminton
+Table tennis | ping pong | ping-pong
+Handball
+Water polo
+Fencing
+Archery
+Rowing | crew
+Sailing
+Diving
+Figure skating | ice skating
+Karate
+Judo
+Taekwondo | tae kwon do
+Mixed martial arts | MMA | UFC
+Triathlon
+Marathon
+Polo
+Horse racing
+Equestrianism | equestrian | horse riding | horseback riding
+Auto racing | car racing | racing
+Formula One | F1
+NASCAR
+Darts
+Billiards | pool | cue sports
+Snooker
+Curling
+Bobsleigh | bobsled
+Luge
+Weightlifting | weight lifting
+Powerlifting
+Bodybuilding
+Rock climbing | climbing | bouldering
+Kickboxing
+Dodgeball
+Pickleball
+Ultimate | ultimate frisbee | frisbee
+Disc golf | frisbee golf
+Squash
+Field hockey
+Rugby league
+Racquetball
+Kayaking
+Canoeing
+Water skiing
+Wakeboarding
+Mountain biking
+BMX
+Motocross
+Speed skating
+Cross-country skiing
+Ski jumping
+Hiking
+Fishing | angling
+Hunting
+Paintball
+Kickball
+Tug of war
+Chess
+
+## tricky
+Jai alai
+Hurling
+Gaelic football
+Kabaddi
+Sepak takraw
+Korfball
+Netball
+Bandy
+Biathlon
+Skeleton
+Pétanque | petanque | boules
+Bocce
+Croquet
+Orienteering
+Modern pentathlon | pentathlon
+Decathlon
+Heptathlon
+Parkour | freerunning
+Sumo
+Kendo
+Capoeira
+Muay Thai | Thai boxing
+Brazilian jiu-jitsu | jiu-jitsu | jiu jitsu | BJJ
+Australian rules football | Aussie rules | AFL
+Shinty
+Lawn bowls | bowls
+Cornhole
+Shuffleboard
+Rodeo
+Bull riding
+Kitesurfing | kiteboarding
+Windsurfing
+Bodyboarding
+Snorkeling
+Scuba diving
+Skydiving
+Bungee jumping
+Hang gliding
+Paragliding
+Triple jump
+Pole vault
+Javelin throw | javelin
+Discus throw | discus
+Hammer throw
+Shot put
+High jump
+Long jump
+Hurdling | hurdles
+Steeplechase
+Racewalking | race walking
+Synchronized swimming | artistic swimming
+Trampolining | trampoline
+Cheerleading
+Dancesport | ballroom dancing
+Roller derby
+Roller skating
+Inline skating | rollerblading
+Esports
+
+## rare
+Underwater hockey
+Chess boxing
+Wife carrying
+Teqball
+Quadball | quidditch
+Footvolley
+Sepaktakraw
+Buzkashi
+Pato
+Kin-Ball
+Bossaball
+Hornussen
+Toe wrestling
+Cheese rolling
+Bog snorkelling
+Fierljeppen
+Calcio storico
+Pesäpallo | pesapallo
+Underwater rugby
+Elephant polo
+Camel racing
+Dog sled racing | sled dog racing | mushing
+
+## remove
+Latin
+Salsa

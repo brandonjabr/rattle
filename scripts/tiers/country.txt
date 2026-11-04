@@ -1,0 +1,105 @@
+# Curated tiers for Countries. Everything not listed is ranked automatically.
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added (non-UN states live here).
+
+## common
+United States | USA | US | America | United States of America | the United States | the US | the USA
+Canada
+Mexico
+China | People's Republic of China | PRC
+Japan
+France
+Germany
+Italy
+Spain
+United Kingdom | UK | Britain | Great Britain | the UK
+Russia | Russian Federation
+Brazil
+India
+Australia | Oz
+Egypt
+
+## easy
+Ireland | Republic of Ireland | Eire
+Greece
+Portugal
+Netherlands | Holland | the Netherlands | Kingdom of the Netherlands
+Switzerland
+Sweden
+Norway
+Denmark
+Finland
+Poland
+Ukraine
+Argentina
+Turkey | Türkiye | Turkiye
+Israel
+Iran
+Iraq
+Afghanistan
+Pakistan
+South Korea | Korea | Republic of Korea
+North Korea | DPRK
+Vietnam | Viet Nam
+Thailand
+Philippines | the Philippines
+Indonesia
+South Africa
+Nigeria
+Kenya
+Cuba
+Jamaica
+Colombia
+Peru
+Chile
+New Zealand | Aotearoa
+Saudi Arabia
+Belgium
+Austria
+England
+Scotland
+Wales
+Iceland
+Morocco
+Ethiopia
+Venezuela
+Syria
+Singapore
+Malaysia
+Czech Republic | Czechia
+Hungary
+Haiti
+
+## tricky
+Northern Ireland
+Taiwan | Republic of China
+Vatican City | Vatican | Holy See
+Palestine | State of Palestine
+Kosovo
+United Arab Emirates | UAE | Emirates
+Democratic Republic of the Congo | DRC | DR Congo | Congo-Kinshasa | Zaire
+Republic of the Congo | Congo | Congo-Brazzaville
+Ivory Coast | Côte d'Ivoire | Cote d'Ivoire
+Myanmar | Burma
+Eswatini | Swaziland
+North Macedonia | Macedonia
+Cape Verde | Cabo Verde
+Timor-Leste | East Timor
+Bosnia and Herzegovina | Bosnia
+Trinidad and Tobago | Trinidad
+Antigua and Barbuda | Antigua
+Saint Kitts and Nevis | St Kitts and Nevis | St. Kitts
+Saint Lucia | St Lucia | St. Lucia
+Saint Vincent and the Grenadines | St Vincent | St. Vincent
+São Tomé and Príncipe | Sao Tome and Principe | Sao Tome
+Micronesia | Federated States of Micronesia
+Gambia | The Gambia
+Bahamas | The Bahamas
+
+## legendary
+Tuvalu
+Nauru
+Palau
+Marshall Islands
+Kiribati
+Comoros
