@@ -8,7 +8,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Libre+Franklin:wght@400;500;600;700;800&display=swap" />
-  <title>Rattle — 60s</title>
+  <title>Rattle · The 60-second daily word game</title>
+  <meta name="description" content="Name as many things in today's category as you can in 60 seconds. Common answers score a little, rare deep cuts score big. Free, new category every day." />
+  <link rel="canonical" href="https://playrattle.io/" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+  <!-- link previews (iMessage, WhatsApp, X, Discord, Slack...) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Rattle" />
+  <meta property="og:title" content="Rattle · The 60-second daily word game" />
+  <meta property="og:description" content="Name as many as you can in 60 seconds. The rarer the answer, the more points. Can you beat my score?" />
+  <meta property="og:url" content="https://playrattle.io/" />
+  <meta property="og:image" content="https://playrattle.io/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Rattle: name as many as you can in 60 seconds" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://playrattle.io/og.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -22,6 +39,8 @@
         <span class="t-go">Rattle off as many as you can.</span>
         <span class="t-rare">The <b>rarer</b> each answer, the <b>more points</b> it is worth.</span>
       </div>
+
+      <div class="challenge" id="challengeBanner" hidden></div>
 
       <div class="start-card">
         <div class="label" id="catLabel">Category</div>
@@ -74,6 +93,7 @@
         <div class="r-title">Time!</div>
         <div class="r-score" id="finalScore">0</div>
         <div class="r-sub" id="finalSub"></div>
+        <div class="challenge-result" id="challengeResult" hidden></div>
 
         <div class="review" id="review" hidden></div>
 

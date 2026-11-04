@@ -21,14 +21,35 @@ function dayNumber(d = new Date()) {
   return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000);
 }
 function dailyIndex() { return ((dayNumber() % DECK.length) + DECK.length) % DECK.length; }
+// Daily puzzle number, like "Wordle 1,234". Rattle #1 was 1 Nov 2026 (UTC).
+const LAUNCH_DAY = dayNumber(new Date(Date.UTC(2026, 10, 1)));
+function puzzleNumber() { return dayNumber() - LAUNCH_DAY + 1; }
+
+// ---- friend challenges: links like ?c=sport&s=4995&by=Sam ----
+const challenge = readChallenge();
+function readChallenge() {
+  const q = new URLSearchParams(location.search);
+  const idx = DECK.findIndex((d) => d.id === q.get("c"));
+  const score = parseInt(q.get("s"), 10);
+  if (idx < 0 || !(score > 0 && score < 1000000)) return null;
+  const by = (q.get("by") || "").replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20);
+  return { idx, id: DECK[idx].id, score, by };
+}
+const challenger = () => (challenge.by ? challenge.by + "'s" : "your friend's");
 
 function updateStartCard() {
   const isDaily = deckIndex === dailyIndex();
   const label = $("catLabel");
-  label.textContent = isDaily ? "⭐ Today's challenge" : "Category (free play)";
+  label.textContent = isDaily ? "⭐ Rattle #" + puzzleNumber() + " · Today's challenge" : "Category (free play)";
   label.classList.toggle("daily", isDaily);
   $("dailyJump").hidden = isDaily;
   $("startCategory").textContent = P.category + "!";
+  const banner = $("challengeBanner");
+  banner.hidden = !(challenge && challenge.id === P.id);
+  if (!banner.hidden) {
+    banner.innerHTML = "🎯&nbsp; <b>" + escapeHtml(challenge.by || "A friend") + "</b> scored <b>" + fmt(challenge.score) +
+      "</b> on " + escapeHtml(P.category) + ". Can you beat it?";
+  }
   const b = getBest();
   $("startBest").textContent = b ? "Your best: " + fmt(b) : "No score yet";
 }
@@ -45,7 +66,8 @@ ringFg.style.strokeDashoffset = 0;
 let round = null, raf = null, lastRun = null, lastRank = null, lastAllRank = null;
 
 function startRound() {
-  round = { items: [], names: {}, base: 0, pending: [], pendingKeys: {}, start: performance.now(), ended: false };
+  round = { items: [], names: {}, base: 0, pending: [], pendingKeys: {}, start: performance.now(), ended: false,
+            daily: deckIndex === dailyIndex(), number: puzzleNumber() };
   startScreen.hidden = true; resultsScreen.hidden = true; gameScreen.hidden = false;
   chipsEl.innerHTML = ""; scoreEl.textContent = "0"; countEl.textContent = "0";
   $("catSmall").textContent = P.category.toLowerCase();
@@ -189,10 +211,20 @@ function renderResults(from) {
 
   const best = saveBest(total);
   // Verified answers are sent as typed: the server matches them against its own verified table.
-  lastRun = { categoryId: P.id, answers: round.items.map((i) => i.raw || i.name), total, count, dist };
+  lastRun = { categoryId: P.id, answers: round.items.map((i) => i.raw || i.name), total, count, dist,
+              daily: round.daily, number: round.number };
 
   $("finalSub").textContent = count + " named, avg " + avg + " pts" + (total >= best && total > 0 ? ", new best!" : ", best " + fmt(best));
   $("haul").innerHTML = haulCard(dist, round.items, count);
+  const vs = $("challengeResult");
+  vs.hidden = !(challenge && challenge.id === P.id);
+  if (!vs.hidden) {
+    const diff = total - challenge.score;
+    vs.className = "challenge-result" + (diff > 0 ? " won" : "");
+    vs.textContent = diff > 0 ? "🎉 You beat " + challenger() + " " + fmt(challenge.score) + "!"
+      : diff === 0 ? "🤝 Tied with " + challenger() + " " + fmt(challenge.score) + "!"
+      : fmt(-diff) + " short of " + challenger() + " " + fmt(challenge.score) + ". One more try?";
+  }
   $("breakdown").innerHTML =
     row("Answers", base, count + " named") +
     row("Volume bonus", volume, "50 each") +
@@ -396,16 +428,20 @@ function buildShareText() {
   for (let i = 0; i < BANDS.length; i++) {
     if (lastRun.dist[i]) parts.push(BANDS[i].emoji + " " + lastRun.dist[i] + " " + BANDS[i].label.toLowerCase());
   }
-  let t = "Rattle — Rattle off some " + P.category + "!\n\n";
+  let t = (lastRun.daily ? "Rattle #" + lastRun.number + " · " + P.category : "Rattle · " + P.category + " (free play)") + "\n\n";
   t += "I rattled off " + lastRun.count + " for " + fmt(lastRun.total) + " points! 🎉\n";
   t += "My haul, from common to legendary:\n" + parts.join("\n");
-  if (lastRank) {
-    t += "\n\n🏆 #" + lastRank + " today" + (lastAllRank ? ", #" + lastAllRank + " all-time" : "") +
-         ". Your turn — can you beat me? 😄";
-  } else {
-    t += "\n\nCan you name more? 😄";
-  }
-  return t + "\nPlay free: " + location.href;
+  if (lastRank) t += "\n\n🏆 #" + lastRank + " today" + (lastAllRank ? ", #" + lastAllRank + " all-time" : "") + ".";
+  return t + "\n\nCan you beat me? 👇\n" + challengeUrl();
+}
+// Link that opens this category with my score as the target to beat.
+function challengeUrl() {
+  const u = new URL(location.origin + location.pathname);
+  u.searchParams.set("c", P.id);
+  u.searchParams.set("s", lastRun.total);
+  const name = getName();
+  if (name) u.searchParams.set("by", name);
+  return u.toString();
 }
 async function doShare() {
   if (!lastRun) return;
@@ -460,7 +496,8 @@ $("closeHow").addEventListener("click", () => { $("howModal").hidden = true; });
 $("howModal").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
 
 // ---- boot ----
-// Open on today's shared challenge; the picker still lets you free-play any category.
-loadPuzzle(dailyIndex());
+// Open on today's shared challenge (or a friend's challenge link); the picker still
+// lets you free-play any category.
+loadPuzzle(challenge ? challenge.idx : dailyIndex());
 tickCountdown();
 setInterval(tickCountdown, 1000);

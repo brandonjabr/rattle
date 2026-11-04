@@ -106,6 +106,13 @@ body {
 .countdown { color: var(--muted); font-size: 0.82rem; font-weight: 600; margin: -8px 0 16px; }
 .countdown b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 800; }
 
+/* friend challenge banner (start) and outcome (results) */
+.challenge { width: min(360px, 100%); margin: 0 auto 12px; padding: 11px 14px; border-radius: 12px; font-size: 0.95rem; line-height: 1.35;
+  background: color-mix(in srgb, var(--c2) 16%, var(--card)); border: 1px solid color-mix(in srgb, var(--c2) 55%, transparent); }
+.challenge-result { max-width: 360px; margin: -6px auto 16px; padding: 9px 14px; border-radius: 999px; font-weight: 700; font-size: 0.95rem;
+  background: var(--soft); color: var(--ink); }
+.challenge-result.won { background: color-mix(in srgb, var(--go) 18%, var(--card)); color: var(--good); }
+
 /* ---------- GAME ---------- */
 /* Fixed to the visible viewport so the answer box stays put and only the chips scroll. */
 .game { flex: none; height: calc(100dvh - var(--pt) - var(--pb) - 30px); min-height: 320px; }
