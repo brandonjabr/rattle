@@ -1,0 +1,58 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+George Washington | washington
+Abraham Lincoln | lincoln | abe lincoln | honest abe
+Thomas Jefferson | jefferson
+John F. Kennedy | kennedy | jfk | john kennedy
+Franklin D. Roosevelt | franklin delano roosevelt | fdr | franklin roosevelt
+Theodore Roosevelt | teddy roosevelt | teddy | roosevelt
+Barack Obama | obama
+Donald Trump | trump | donald j trump
+Joe Biden | biden
+Ronald Reagan | reagan
+Bill Clinton | clinton
+George W. Bush | george bush | bush | george w bush | dubya
+Richard Nixon | nixon
+George H. W. Bush | george hw bush | bush senior | bush sr
+
+## easy
+John Adams | adams
+Jimmy Carter | carter
+Dwight D. Eisenhower | eisenhower | ike
+Harry S. Truman | truman | harry truman
+Lyndon B. Johnson | lbj | lyndon johnson
+Andrew Jackson | jackson
+Ulysses S. Grant | grant | ulysses grant
+James Madison | madison
+Woodrow Wilson | wilson
+Gerald Ford | ford
+James Monroe | monroe
+John Quincy Adams | jqa
+Herbert Hoover | hoover
+
+## tricky
+William McKinley | mckinley
+Calvin Coolidge | coolidge
+James K. Polk | polk | james polk
+Andrew Johnson | johnson
+William Howard Taft | taft
+Grover Cleveland | cleveland
+
+## rare
+Martin Van Buren | van buren
+Warren G. Harding | harding
+Zachary Taylor | taylor
+William Henry Harrison | harrison
+John Tyler | tyler
+Benjamin Harrison
+Rutherford B. Hayes | hayes
+James A. Garfield | garfield | james garfield
+James Buchanan | buchanan
+
+## exotic
+Franklin Pierce | pierce
+Millard Fillmore | fillmore
+Chester A. Arthur | arthur | chester arthur

@@ -1,0 +1,42 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+Siamese | siamese cat
+Persian | persian cat
+Maine Coon | maine coon cat
+Sphynx | sphinx | sphynx cat | hairless cat
+Ragdoll | ragdoll cat
+Bengal | bengal cat
+British Shorthair
+Scottish Fold
+Russian Blue
+Abyssinian
+
+## easy
+Siberian | siberian cat
+Norwegian Forest Cat | norwegian forest
+Birman
+Himalayan | himalayan cat
+American Shorthair
+Exotic Shorthair | exotic
+Devon Rex
+Cornish Rex
+Burmese | burmese cat
+Savannah | savannah cat
+Manx | manx cat
+Munchkin | munchkin cat
+Oriental Shorthair | oriental
+Turkish Angora | angora
+Turkish Van
+Bombay | bombay cat
+Tonkinese
+
+## remove
+Tabby
+Calico
+Tortoiseshell
+
+## remove
+Black and Tabby

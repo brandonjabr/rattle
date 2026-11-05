@@ -1,0 +1,69 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+English
+Spanish | castilian | espanol
+French
+German
+Chinese | mandarin | mandarin chinese
+Japanese
+Italian
+Russian
+Portuguese
+Arabic
+Korean
+Hindi
+Greek | modern greek
+Latin
+Dutch
+
+## easy
+Swedish
+Polish
+Turkish
+Hebrew
+Irish | gaelic | irish gaelic
+Norwegian
+Danish
+Finnish
+Welsh
+Vietnamese
+Thai
+Ukrainian
+Persian | farsi
+Swahili | kiswahili
+Bengali | bangla
+Urdu
+Tagalog | filipino
+Hungarian
+Czech
+Romanian
+Indonesian
+Esperanto
+Cantonese
+Punjabi
+
+## tricky
+Scottish Gaelic | scots gaelic
+Icelandic
+Afrikaans
+Zulu
+Yiddish
+Sanskrit
+Tamil
+Basque
+Catalan
+Croatian
+Serbian
+Malay
+Navajo
+Hawaiian
+Yoruba
+Amharic
+Telugu
+Gujarati
+Marathi
+Somali
+Mongolian

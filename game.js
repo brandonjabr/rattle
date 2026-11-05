@@ -20,7 +20,16 @@ function loadPuzzle(i) {
 function dayNumber(d = new Date()) {
   return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000);
 }
-function dailyIndex() { return ((dayNumber() % DECK.length) + DECK.length) % DECK.length; }
+// Daily rotation, in order from Rattle #1. Append new categories here (and to the
+// deck) without reordering, so past and current puzzle numbers keep their category.
+const SCHEDULE = ["dog", "instrument", "myth", "sport", "fruit", "constellation", "cheese", "president",
+  "dinosaur", "language", "pasta", "country", "moon", "cat", "capital", "element", "horse"];
+function dailyIndex() {
+  const ids = SCHEDULE.filter((id) => DECK.some((d) => d.id === id));
+  for (const d of DECK) if (!ids.includes(d.id)) ids.push(d.id);
+  const n = ((puzzleNumber() - 1) % ids.length + ids.length) % ids.length;
+  return DECK.findIndex((d) => d.id === ids[n]);
+}
 // Daily puzzle number, like "Wordle 1,234". Rattle #1 was 1 Nov 2026 (UTC).
 const LAUNCH_DAY = dayNumber(new Date(Date.UTC(2026, 10, 1)));
 function puzzleNumber() { return dayNumber() - LAUNCH_DAY + 1; }

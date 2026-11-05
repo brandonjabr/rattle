@@ -1,0 +1,35 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+Arabian | arabian horse | arab
+Thoroughbred
+Clydesdale
+Mustang
+Shetland pony | shetland
+Appaloosa
+American Quarter Horse | quarter horse
+Friesian | friesian horse
+Shire | shire horse
+
+## easy
+Andalusian | andalusian horse | pre
+Lipizzan | lipizzaner
+Percheron
+Morgan | morgan horse
+American Paint Horse | paint horse | paint
+Tennessee Walking Horse | tennessee walker
+Belgian | belgian draft | brabant
+Icelandic horse | icelandic
+Welsh pony | welsh pony and cob
+Connemara pony | connemara
+Haflinger
+Standardbred
+Falabella
+Akhal-Teke | akhal teke
+Norwegian Fjord | fjord horse | fjord
+Hanoverian | hanoverian horse
+Mongolian horse
+Trakehner
+Missouri Fox Trotter

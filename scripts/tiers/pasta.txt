@@ -1,0 +1,55 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+Spaghetti
+Penne
+Macaroni | mac | elbow macaroni | elbows
+Lasagna | lasagne
+Fettuccine | fettucine | fettuccini
+Ravioli
+Linguine | linguini
+Rigatoni
+Fusilli
+Farfalle | bow tie | bow ties | bowtie | bowties | bow tie pasta
+Tortellini
+Ziti
+
+## easy
+Orzo
+Gnocchi
+Capellini | angel hair | angel hair pasta
+Rotini
+Cannelloni
+Manicotti
+Vermicelli
+Orecchiette
+Tagliatelle
+Pappardelle
+Conchiglie | shells | shell pasta | pasta shells
+Bucatini
+Ditalini
+Rotelle | wagon wheels | ruote
+Cavatappi
+Gemelli
+Tortelloni
+Campanelle
+Stelline | stars
+Agnolotti
+
+## tricky
+Paccheri
+Strozzapreti
+Cappelletti
+Trofie
+Radiatori
+Acini di pepe
+Garganelli
+Casarecce
+Pastina
+
+## remove
+Minestra imbottita
+Sebada
+Maccheroni alla molinara

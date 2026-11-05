@@ -1,0 +1,59 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+Tyrannosaurus | t rex | t-rex | trex | tyrannosaurus rex | t. rex
+Triceratops
+Velociraptor | raptor | velociraptors
+Stegosaurus
+Brachiosaurus
+Brontosaurus
+Spinosaurus
+Ankylosaurus
+Diplodocus
+Allosaurus
+
+## easy
+Parasaurolophus
+Iguanodon
+Pachycephalosaurus
+Apatosaurus
+Dilophosaurus
+Gallimimus
+Archaeopteryx
+Carnotaurus
+Giganotosaurus
+Compsognathus
+Deinonychus
+Argentinosaurus
+Utahraptor
+Oviraptor
+Maiasaura
+
+## tricky
+Therizinosaurus
+Baryonyx
+Microraptor
+Edmontosaurus
+Protoceratops
+Styracosaurus
+Corythosaurus
+Albertosaurus
+Megalosaurus
+Mamenchisaurus
+Coelophysis
+Herrerasaurus
+Suchomimus
+Troodon
+Plateosaurus
+
+## remove
+Pteranodon
+Pterodactylus
+Quetzalcoatlus
+Mosasaurus
+Plesiosaurus
+Ichthyosaurus
+Dimetrodon
+Elasmosaurus

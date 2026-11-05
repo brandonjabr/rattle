@@ -1,0 +1,54 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+Cheddar | cheddar cheese
+Mozzarella
+Parmesan | parmigiano reggiano | parmigiano | parmesan cheese
+Swiss cheese | swiss
+Brie
+Feta
+Gouda
+American cheese | american
+Cream cheese
+Blue cheese | bleu cheese
+Camembert
+Provolone
+Ricotta
+Monterey Jack | jack cheese
+
+## easy
+Cottage cheese
+Goat cheese | chevre | chèvre | goats cheese
+Gruyère | gruyere
+Emmental | emmentaler
+Havarti
+Pepper Jack
+Colby
+Roquefort
+Gorgonzola
+Stilton
+Pecorino Romano | pecorino
+Mascarpone
+Halloumi
+Muenster | munster
+Edam
+Manchego
+Burrata
+Asiago
+Paneer
+String cheese
+Queso fresco
+Velveeta
+Romano
+Limburger
+
+## remove
+Cheese
+
+## remove
+Mattar paneer
+Kadai paneer
+Palak paneer
+Cheese curds dish

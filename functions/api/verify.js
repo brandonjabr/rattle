@@ -22,6 +22,16 @@ const RULES = {
   instrument: "Count musical instruments. Genres, bands, musicians, the human voice, and parts or accessories of instruments (bow, string, reed, pick, amplifier) do not count.",
   myth: "Count gods, Titans, heroes, mortals, monsters and creatures from ancient Greek mythology; Roman names for Greek gods count too. Figures only from other mythologies, or characters only from modern fiction or video games, do not count.",
   sport: "Count sports and games played competitively as sports. Exercises (like push-ups or jumping jacks), single moves or skills, equipment, positions, teams, leagues, events, venues and athletes do not count.",
+  constellation: "Count only the 88 constellations recognized by the IAU. Asterisms (like the Big Dipper or Orion's Belt), individual stars, planets, galaxies and nebulae do not count, unless the answer is a common nickname for a whole constellation.",
+  dinosaur: "Count dinosaur genera and species, including bird-like dinosaurs such as Archaeopteryx. Pterosaurs (like Pteranodon), marine reptiles (like Mosasaurus or Plesiosaurus), Dimetrodon, mammoths and fictional dinosaurs do not count.",
+  moon: "Count natural satellites of planets, dwarf planets and asteroids in our solar system, including Earth's Moon. Planets, dwarf planets themselves (like Pluto), stars, spacecraft and fictional moons do not count.",
+  president: "Count people who have served as President of the United States, by full name, surname or well-known nickname. Vice presidents who never became president, first ladies and presidents of other countries do not count.",
+  capital: "Count the current capital cities of sovereign countries, plus the capitals of England, Scotland, Wales, Northern Ireland, Taiwan, Palestine and Kosovo. Former capitals and large cities that are not capitals (like Sydney, Istanbul, Toronto or New York) do not count.",
+  language: "Count real human languages, living or dead, including sign languages and constructed languages like Esperanto. Dialects count only if commonly treated as languages (like Cantonese). Fictional languages (like Klingon or Elvish), programming languages and writing systems do not count.",
+  cat: "Count recognized domestic cat breeds. Coat colors or patterns (tabby, calico, tortoiseshell, tuxedo), wild cats (lion, tiger, lynx) and individual famous cats do not count.",
+  horse: "Count horse and pony breeds. Coat colors (like palomino, bay or pinto, unless the answer names a breed registry), wild equines (zebra, donkey, wild ass), horse types (like stallion or warmblood alone) and individual famous horses do not count.",
+  cheese: "Count specific cheeses and cheese varieties, including processed and fresh cheeses. Dishes made with cheese (fondue, mac and cheese), dairy products that are not cheese (yogurt, butter) and brand names that are not a cheese do not count.",
+  pasta: "Count pasta shapes and types, including filled and fresh pasta and gnocchi. Sauces, finished dishes (like carbonara or mac and cheese) and Asian noodles (like ramen or udon) do not count.",
 };
 
 export async function onRequestPost({ request, env }) {

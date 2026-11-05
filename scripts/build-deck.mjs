@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { norm, pointsFor, bandOf, TIER_POINTS as TIERS, rarityForPoints } from "../scoring.js";
 
-const UA = "RattleGame/1.0 (https://rattle.pages.dev; brandonjabr@gmail.com)";
+const UA = "RattleDeckBuilder/1.0 (https://playrattle.io)";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CACHE_DIR = join(ROOT, "node_modules", ".cache", "rattle-deck");
 const MAX_R = 1000;
@@ -69,6 +69,48 @@ const CATS = [
     stop: ["sport","sports","team sport","individual sport","ball game","racquet sport","racket sport","water sport",
            "winter sport","combat sport","motorsport","mind sport","bat and ball game","football","code of football",
            "invasion game","net sport","target sport","cue sport","dance","dancing","extreme sport","esports"] },
+
+  { id: "constellation", category: "Constellations",
+    wikidata: "", lists: ["IAU designated constellations"], stop: [] },
+
+  { id: "dinosaur", category: "Dinosaurs",
+    wikidata: "", lists: ["List of dinosaur genera"], stop: ["dinosaur","dinosauria"] },
+
+  { id: "moon", category: "Moons",
+    wikidata: "", lists: ["List of natural satellites"], stop: ["natural satellite","see list","moons of jupiter","moons of saturn","moons of uranus","moons of neptune",
+           "moons of mars","moons of pluto","moons of haumea","moons of eris","minor planet moon"] },
+
+  { id: "president", category: "US Presidents", surnames: true,
+    // Real people only: fictional presidents from films and TV carry the same statement.
+    wikidata: "?item p:P39/ps:P39 wd:Q11696 ; wdt:P31 wd:Q5 .", lists: [], stop: [] },
+
+  { id: "capital", category: "Capital Cities",
+    wikidata: "?c wdt:P463 wd:Q1065 ; wdt:P36 ?item . FILTER NOT EXISTS { ?c wdt:P576 ?end }",
+    lists: [], stop: [] },
+
+  { id: "language", category: "Languages",
+    wikidata: "?item wdt:P218 ?iso .", lists: [], stop: [] },
+
+  { id: "cat", category: "Cat Breeds",
+    wikidata: "?item wdt:P31 wd:Q43577 .", lists: ["List of cat breeds"],
+    stop: ["cat","cat breed","domestic cat"] },
+
+  { id: "horse", category: "Horse Breeds",
+    wikidata: "?item wdt:P31 wd:Q1160573 .", lists: ["List of horse breeds"],
+    stop: ["horse","horse breed","pony","landrace"] },
+
+  { id: "cheese", category: "Cheeses",
+    // Wikidata only: the "List of cheeses" tables link regions in every row.
+    wikidata: "{ ?item wdt:P279+ wd:Q10943 } UNION { ?item wdt:P31/wdt:P279* wd:Q10943 }", lists: [],
+    trim: / (PDO|DOP|AOP|AOC|PGI|IGP|PAT)$/i, dropSuffix: " cheese",
+    stop: ["cheese","types of cheese","cheese dish"] },
+
+  { id: "pasta", category: "Pasta Shapes",
+    // Italian-origin pasta, minus finished dishes. Without the origin filter,
+    // "stuffed pasta" pulls in every dumpling on Earth (gyoza, pierogi, samosa...).
+    wikidata: "{ ?item wdt:P279+ wd:Q178 } UNION { ?item wdt:P31/wdt:P279* wd:Q178 } ?item wdt:P495 wd:Q38 . " +
+              "FILTER NOT EXISTS { ?item wdt:P279*|wdt:P31/wdt:P279* wd:Q18679685 }",
+    lists: [], trim: / (PAT|IGP|PGI)$/i, stop: ["pasta","stuffed pasta","noodle","dumpling"] },
 ];
 
 
@@ -157,7 +199,9 @@ async function fromList(page) {
   while ((m = re.exec(text))) {
     const title = m[1].trim();
     if (/:/.test(title)) continue;
-    out.push({ name: (m[2] || title).replace(/''/g, "").trim(), title, aliases: [], fromList: true });
+    const name = (m[2] || title).replace(/''/g, "").replace(/\{\{okina\}\}/gi, "ʻ").trim();
+    if (/[{}]/.test(name)) continue;
+    out.push({ name, title, aliases: [], fromList: true });
   }
   return out;
 }
@@ -265,9 +309,13 @@ async function buildCategory(cat) {
 
   let entries = [];
   for (const e of byTitle.values()) {
-    const name = stripParen(e.listName || e.name || e.title);
+    let name = stripParen(e.listName || e.name || e.title);
+    if (cat.trim) name = name.replace(cat.trim, "").trim();
     if (badName(name) || stop.has(norm(name))) continue;
-    entries.push({ name: cap1(name), title: e.title, qid: e.qid, aliases: [...e.aliases].map(stripParen) });
+    const aliases = [...e.aliases].map(stripParen);
+    if (cat.surnames) aliases.push(name.split(" ").pop());
+    if (cat.dropSuffix && name.toLowerCase().endsWith(cat.dropSuffix)) aliases.push(name.slice(0, -cat.dropSuffix.length));
+    entries.push({ name: cap1(name), title: e.title, qid: e.qid, aliases });
   }
 
   // Automatic rarity from pageviews + sitelinks.

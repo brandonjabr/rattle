@@ -1,0 +1,90 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+London
+Paris
+Washington, D.C. | washington dc | washington | dc | d.c.
+Tokyo
+Rome
+Berlin
+Madrid
+Beijing | peking
+Moscow
+Ottawa
+Mexico City
+Canberra
+Cairo
+Athens
+Dublin
+
+## easy
+Lisbon
+Amsterdam
+Brussels
+Vienna
+Stockholm
+Oslo
+Copenhagen
+Seoul
+Bangkok
+New Delhi | delhi
+Buenos Aires
+Warsaw
+Prague
+Budapest
+Helsinki
+Havana
+Jerusalem
+Kyiv | kiev
+Nairobi
+Lima
+Santiago
+Bogotá | bogota
+Tehran
+Baghdad
+Kabul
+Manila
+Jakarta
+Hanoi
+Wellington
+Brasília | brasilia
+Reykjavík | reykjavik
+Ankara
+Bern | berne
+Singapore
+Taipei
+Edinburgh
+
+## tricky
+Islamabad
+Riyadh
+Caracas
+Kuala Lumpur
+Pyongyang
+Beirut
+Damascus
+Amman
+Doha
+Abu Dhabi
+Kathmandu
+Montevideo
+Quito
+La Paz
+Pretoria
+Cape Town
+Addis Ababa
+Abuja
+Accra
+Bucharest
+Belgrade
+Sofia
+Zagreb
+Cardiff
+Belfast
+Vatican City
+Monaco
+
+## remove
+Antigua and Barbuda

@@ -1,0 +1,56 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+Orion | the hunter
+Ursa Major | great bear | big dipper | the big dipper
+Leo
+Scorpius | scorpio
+Taurus
+Gemini
+Aries
+Virgo
+Sagittarius
+Pisces
+Aquarius
+Cancer
+Libra
+Capricornus | capricorn
+Ursa Minor | little bear | little dipper | the little dipper
+Cassiopeia
+
+## easy
+Andromeda
+Pegasus
+Draco
+Cygnus | the swan | northern cross
+Perseus
+Hercules
+Crux | southern cross | the southern cross
+Lyra
+Canis Major
+Phoenix
+Centaurus
+Aquila
+
+## tricky
+Hydra
+Cepheus
+Boötes | bootes
+Ophiuchus
+Auriga
+Corona Borealis
+Canis Minor
+Lupus
+Lepus
+Cetus
+Eridanus
+Monoceros
+Delphinus
+Corvus
+Pavo
+Columba
+Carina
+Vela
+Puppis

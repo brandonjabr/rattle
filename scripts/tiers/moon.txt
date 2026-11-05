@@ -1,0 +1,43 @@
+# Curated tiers. Everything not listed is ranked automatically (Tricky or rarer).
+# Within a tier, put the most common first. Format:  Name | alias | alias
+# A name the sources don't have gets added. "## remove" drops bad entries.
+
+## common
+Moon | the moon | luna | earth's moon
+Titan
+Europa
+Ganymede
+Io
+Callisto
+Phobos
+Deimos
+Triton
+Charon
+Enceladus
+
+## easy
+Miranda
+Titania
+Oberon
+Mimas
+Rhea
+Iapetus
+Dione
+Tethys
+Ariel
+Umbriel
+
+## tricky
+Hyperion
+Phoebe
+Proteus
+Nereid
+Amalthea
+Pandora
+Prometheus
+Janus
+Epimetheus
+Nix
+Hydra
+Dysnomia
+Puck
