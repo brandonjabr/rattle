@@ -1,10 +1,18 @@
 /* Rattle, 60 second rarity rush (frontend) */
 import { DECK } from "./deck.js";
 import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js";
+import { dailyCategoryId, dayNumber, puzzleNumber } from "./schedule.js";
 
 const TOTAL = 60;
 const R = 52, C = 2 * Math.PI * R;
 const $ = (id) => document.getElementById(id);
+
+// ---- game modes ----
+// "daily": the Daily Challenge, one category per UTC day for everyone (see schedule.js),
+//          with its own global leaderboard.
+// "free":  Free Play, any category, with a separate Free Play leaderboard.
+let mode = "daily";
+const GAME_TYPE = { daily: "daily_challenge", free: "free_play" };
 
 // ---- active puzzle ----
 let deckIndex = 0, P, CAT;      // CAT = { maxR, lookup }
@@ -13,26 +21,21 @@ function loadPuzzle(i) {
   P = DECK[deckIndex];
   CAT = indexCategory(P.entries);
   updateStartCard();
-  try { localStorage.setItem("rattle-cat", deckIndex); } catch (e) {}
+  if (mode === "free") try { localStorage.setItem("rattle-cat", P.id); } catch (e) {}
 }
-// The category of the day is the same for everyone (chosen by UTC date), so the
-// daily leaderboard is one shared board.
-function dayNumber(d = new Date()) {
-  return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000);
+function dailyIndex() { return Math.max(0, DECK.findIndex((d) => d.id === dailyCategoryId())); }
+function savedFreeIndex() {
+  let id = null;
+  try { id = localStorage.getItem("rattle-cat"); } catch (e) {}
+  const i = DECK.findIndex((d) => d.id === id);
+  return i >= 0 ? i : deckIndex;
 }
-// Daily rotation, in order from Rattle #1. Append new categories here (and to the
-// deck) without reordering, so past and current puzzle numbers keep their category.
-const SCHEDULE = ["dog", "instrument", "myth", "sport", "fruit", "constellation", "cheese", "president",
-  "dinosaur", "language", "pasta", "country", "moon", "cat", "capital", "element", "horse"];
-function dailyIndex() {
-  const ids = SCHEDULE.filter((id) => DECK.some((d) => d.id === id));
-  for (const d of DECK) if (!ids.includes(d.id)) ids.push(d.id);
-  const n = ((puzzleNumber() - 1) % ids.length + ids.length) % ids.length;
-  return DECK.findIndex((d) => d.id === ids[n]);
+function setMode(m, idx) {
+  mode = m;
+  $("modeDaily").classList.toggle("active", m === "daily");
+  $("modeFree").classList.toggle("active", m === "free");
+  loadPuzzle(m === "daily" ? dailyIndex() : idx ?? savedFreeIndex());
 }
-// Daily puzzle number, like "Wordle 1,234". Rattle #1 was 1 Nov 2026 (UTC).
-const LAUNCH_DAY = dayNumber(new Date(Date.UTC(2026, 10, 1)));
-function puzzleNumber() { return dayNumber() - LAUNCH_DAY + 1; }
 
 // ---- friend challenges: links like ?c=sport&s=4995&by=Sam ----
 const challenge = readChallenge();
@@ -47,11 +50,17 @@ function readChallenge() {
 const challenger = () => (challenge.by ? challenge.by + "'s" : "your friend's");
 
 function updateStartCard() {
-  const isDaily = deckIndex === dailyIndex();
+  const isDaily = mode === "daily";
   const label = $("catLabel");
-  label.textContent = isDaily ? "⭐ Rattle #" + puzzleNumber() + " · Today's challenge" : "Category (free play)";
+  label.textContent = isDaily ? "Rattle #" + puzzleNumber() + " · Daily Challenge (Global)" : "Free Play · Your pick";
   label.classList.toggle("daily", isDaily);
-  $("dailyJump").hidden = isDaily;
+  $("prevCat").classList.toggle("off", isDaily);
+  $("nextCat").classList.toggle("off", isDaily);
+  $("prevCat").disabled = $("nextCat").disabled = isDaily;
+  $("modeHint").innerHTML = isDaily
+    ? "Same category for everyone today. Easiest on Monday, hardest on Sunday."
+    : "<b>Choose any category</b> with the arrows. Scores go on the <b>Free Play</b> leaderboard.";
+  $("countdown").hidden = !isDaily;
   $("startCategory").textContent = P.category + "!";
   const banner = $("challengeBanner");
   banner.hidden = !(challenge && challenge.id === P.id);
@@ -76,7 +85,7 @@ let round = null, raf = null, lastRun = null, lastRank = null, lastAllRank = nul
 
 function startRound() {
   round = { items: [], names: {}, base: 0, pending: [], pendingKeys: {}, start: performance.now(), ended: false,
-            daily: deckIndex === dailyIndex(), number: puzzleNumber() };
+            daily: mode === "daily", number: puzzleNumber() };
   startScreen.hidden = true; resultsScreen.hidden = true; gameScreen.hidden = false;
   chipsEl.innerHTML = ""; scoreEl.textContent = "0"; countEl.textContent = "0";
   $("catSmall").textContent = P.category.toLowerCase();
@@ -221,7 +230,7 @@ function renderResults(from) {
   const best = saveBest(total);
   // Verified answers are sent as typed: the server matches them against its own verified table.
   lastRun = { categoryId: P.id, answers: round.items.map((i) => i.raw || i.name), total, count, dist,
-              daily: round.daily, number: round.number };
+              daily: round.daily, number: round.number, gameType: round.daily ? GAME_TYPE.daily : GAME_TYPE.free };
 
   $("finalSub").textContent = count + " named, avg " + avg + " pts" + (total >= best && total > 0 ? ", new best!" : ", best " + fmt(best));
   $("haul").innerHTML = haulCard(dist, round.items, count);
@@ -316,6 +325,7 @@ function setTab(scope) {
 }
 function resetLeaderboardUI() {
   $("lbWrap").classList.remove("muted");
+  $("lbTitle").textContent = lastRun && lastRun.daily ? "Daily Challenge leaderboard" : "Free Play leaderboard";
   $("nameInput").value = getName();
   $("submitScore").disabled = false;
   $("submitScore").textContent = "Post my score";
@@ -327,7 +337,8 @@ async function loadLeaderboard(scope) {
   lbScope = scope; setTab(scope);
   if (!lastRun) return;
   try {
-    const res = await fetch("/api/leaderboard?category=" + encodeURIComponent(lastRun.categoryId) + "&scope=" + scope);
+    const res = await fetch("/api/leaderboard?category=" + encodeURIComponent(lastRun.categoryId) +
+      "&mode=" + lastRun.gameType + "&scope=" + scope);
     if (!res.ok) throw new Error("http " + res.status);
     const data = await res.json();
     renderBoard(data.top, getName());
@@ -348,14 +359,22 @@ async function postScore() {
     const res = await fetch("/api/score", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ categoryId: lastRun.categoryId, player: name, answers: lastRun.answers })
+      body: JSON.stringify({ categoryId: lastRun.categoryId, player: name, answers: lastRun.answers, gameType: lastRun.gameType })
     });
+    if (res.status === 400) {
+      // e.g. the Daily Challenge rolled over to a new category mid-round
+      const err = await res.json().catch(() => ({}));
+      btn.textContent = "Not posted";
+      $("lbNote").textContent = err.error || "Could not post this score.";
+      return;
+    }
     if (!res.ok) throw new Error("http " + res.status);
     const data = await res.json();
     lbScope = "today"; setTab("today");
     renderBoard(data.top, name);
     const allPart = data.allTimeRank ? ", #" + data.allTimeRank + " all time" : "";
-    $("lbNote").textContent = "You are #" + data.rank + " today" + allPart + " in " + P.category.toLowerCase() + ".";
+    $("lbNote").textContent = "You are #" + data.rank + " today" + allPart +
+      (lastRun.daily ? " in the Daily Challenge." : " in Free Play " + P.category.toLowerCase() + ".");
     btn.textContent = "Posted!";
     lastRank = data.rank; lastAllRank = data.allTimeRank || null;
     $("shareBtn").textContent = "Share my rank";
@@ -437,10 +456,11 @@ function buildShareText() {
   for (let i = 0; i < BANDS.length; i++) {
     if (lastRun.dist[i]) parts.push(BANDS[i].emoji + " " + lastRun.dist[i] + " " + BANDS[i].label.toLowerCase());
   }
-  let t = (lastRun.daily ? "Rattle #" + lastRun.number + " · " + P.category : "Rattle · " + P.category + " (free play)") + "\n\n";
+  let t = (lastRun.daily ? "Rattle #" + lastRun.number + " · " + P.category : "Rattle Free Play · " + P.category) + "\n\n";
   t += "I rattled off " + lastRun.count + " for " + fmt(lastRun.total) + " points! 🎉\n";
   t += "My haul, from common to legendary:\n" + parts.join("\n");
-  if (lastRank) t += "\n\n🏆 #" + lastRank + " today" + (lastAllRank ? ", #" + lastAllRank + " all-time" : "") + ".";
+  if (lastRank) t += "\n\n🏆 #" + lastRank + " today" + (lastAllRank ? ", #" + lastAllRank + " all-time" : "") +
+    (lastRun.daily ? "." : " in Free Play.");
   return t + "\n\nCan you beat me? 👇\n" + challengeUrl();
 }
 // Link that opens this category with my score as the target to beat.
@@ -482,7 +502,7 @@ function tickCountdown() {
   const d = dayNumber();
   if (d !== lastDay) {               // day rolled over: refresh the daily category
     lastDay = d;
-    if (!startScreen.hidden) loadPuzzle(dailyIndex());
+    if (!startScreen.hidden && mode === "daily") loadPuzzle(dailyIndex());
   }
 }
 function bestKey() { return "rattle-best-" + P.id; }
@@ -497,7 +517,8 @@ $("prevCat").addEventListener("click", () => loadPuzzle(deckIndex - 1));
 $("nextCat").addEventListener("click", () => loadPuzzle(deckIndex + 1));
 $("againBtn").addEventListener("click", () => { updateStartCard(); resultsScreen.hidden = true; startScreen.hidden = false; });
 $("submitScore").addEventListener("click", postScore);
-$("dailyJump").addEventListener("click", () => loadPuzzle(dailyIndex()));
+$("modeDaily").addEventListener("click", () => setMode("daily"));
+$("modeFree").addEventListener("click", () => setMode("free"));
 $("tabToday").addEventListener("click", () => loadLeaderboard("today"));
 $("tabAll").addEventListener("click", () => loadLeaderboard("all"));
 $("howBtn").addEventListener("click", () => { $("howModal").hidden = false; });
@@ -505,8 +526,9 @@ $("closeHow").addEventListener("click", () => { $("howModal").hidden = true; });
 $("howModal").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
 
 // ---- boot ----
-// Open on today's shared challenge (or a friend's challenge link); the picker still
-// lets you free-play any category.
-loadPuzzle(challenge ? challenge.idx : dailyIndex());
+// Open on today's Daily Challenge. A friend's challenge link opens the Daily Challenge
+// if it is today's category, otherwise Free Play on that category.
+if (challenge && challenge.idx !== dailyIndex()) setMode("free", challenge.idx);
+else setMode("daily");
 tickCountdown();
 setInterval(tickCountdown, 1000);

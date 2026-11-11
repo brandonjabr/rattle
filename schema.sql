@@ -2,6 +2,8 @@
 CREATE TABLE IF NOT EXISTS scores (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   category   TEXT    NOT NULL,   -- e.g. "fruit", "country"
+  game_type  TEXT    NOT NULL DEFAULT 'free_play'
+             CHECK (game_type IN ('daily_challenge', 'free_play')),
   day        TEXT    NOT NULL,   -- "YYYY-MM-DD" (UTC); leaderboards reset daily
   player     TEXT    NOT NULL,
   score      INTEGER NOT NULL,
@@ -10,7 +12,8 @@ CREATE TABLE IF NOT EXISTS scores (
   created_at TEXT    NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_board ON scores (category, day, score DESC);
+-- Fresh databases only. An existing one gets game_type from migrations/0002_game_type.sql.
+CREATE INDEX IF NOT EXISTS idx_board ON scores (category, game_type, day, score DESC);
 
 -- Answers the AI checked at the end of a round (one row per category + normalized
 -- answer), so each new answer is judged once and the score API can trust it.

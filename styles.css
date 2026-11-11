@@ -93,7 +93,11 @@ body {
 .nav:active { transform: scale(0.9); }
 .start-card .best { color: var(--good); font-weight: 700; font-size: 0.9rem; }
 .start-card .label.daily { color: var(--ink); }
-.daily-jump { margin: 0; color: var(--good); }
+.mode-tabs { margin: 0 0 12px; }
+.mode-tabs .lb-tab { font-size: 0.82rem; padding: 7px 14px; }
+.mode-hint { color: var(--muted); font-size: 0.8rem; font-weight: 600; line-height: 1.35; max-width: 290px; text-align: center; }
+.mode-hint b { color: var(--ink); }
+.nav.off { visibility: hidden; }
 
 .big-btn {
   appearance: none; border: none; cursor: pointer;
