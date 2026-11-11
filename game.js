@@ -1,7 +1,7 @@
 /* Rattle, 60 second rarity rush (frontend) */
 import { DECK } from "./deck.js";
 import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js";
-import { dailyCategoryId, dayNumber, puzzleNumber } from "./schedule.js";
+import { dailyCategoryId, dayNumber, dayString, puzzleNumber, LAUNCH_DAY } from "./schedule.js";
 
 const TOTAL = 60;
 const R = 52, C = 2 * Math.PI * R;
@@ -84,6 +84,8 @@ ringFg.style.strokeDashoffset = 0;
 let round = null, raf = null, lastRun = null, lastRank = null, lastAllRank = null;
 
 function startRound() {
+  if (mode === "daily") recordDailyStart();
+  activeToast.hidden = true; document.body.classList.remove("has-toast");
   round = { items: [], names: {}, base: 0, pending: [], pendingKeys: {}, start: performance.now(), ended: false,
             daily: mode === "daily", number: puzzleNumber() };
   startScreen.hidden = true; resultsScreen.hidden = true; gameScreen.hidden = false;
@@ -511,11 +513,253 @@ function saveBest(total) { const b = getBest(); if (total > b) { try { localStor
 function getName() { try { return localStorage.getItem("rattle-name") || ""; } catch (e) { return ""; } }
 function setName(n) { try { localStorage.setItem("rattle-name", n); } catch (e) {} }
 
+// ---- leaderboards screen: swipe between categories, Daily Challenge or Free Play ----
+const boardsScreen = $("boardsScreen"), bdTrack = $("bdTrack"), bdChips = $("bdChips");
+const boards = { mode: "daily", scope: "latest", cards: [], active: -1, cache: {} };
+const MEDALS = ["🥇", "🥈", "🥉"];
+
+function lastDailyDay(id) {
+  for (let n = dayNumber(); n >= LAUNCH_DAY; n--) if (dailyCategoryId(n) === id) return n;
+  return null;
+}
+function nextDailyDay(id) {
+  const t = dayNumber();
+  for (let n = t + 1; n < t + 180; n++) if (dailyCategoryId(n) === id) return n;
+  return null;
+}
+function shortDate(n) {
+  return new Date(n * 86400000).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+function openBoards() {
+  startScreen.hidden = true; resultsScreen.hidden = true; boardsScreen.hidden = false;
+  activeToast.hidden = true; document.body.classList.remove("has-toast");
+  if (location.hash !== "#leaderboards") history.pushState({ boards: true }, "", "#leaderboards");
+  window.scrollTo(0, 0);
+  setBoards("daily", "latest", dailyCategoryId());
+}
+function closeBoards() {
+  boardsScreen.hidden = true; startScreen.hidden = false;
+  updateStartCard();
+  updateActiveToast();
+}
+
+// ---- "N people are playing now": Daily Challenge starts in the last hour ----
+const ACTIVE_MIN = 6;                       // show the notice when more than 5 are playing
+const activeToast = $("activeToast");
+let activeCount = 0, activeDismissed = false;
+function playerId() {
+  // Anonymous id kept in this browser, so a player counts once per day.
+  try {
+    let id = localStorage.getItem("rattle-pid");
+    if (!id) {
+      id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+      localStorage.setItem("rattle-pid", id);
+    }
+    return id;
+  } catch (e) { return null; }
+}
+function recordDailyStart() {
+  const pid = playerId();
+  if (!pid) return;
+  fetch("/api/active", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ pid }), keepalive: true }).catch(() => {});
+}
+async function refreshActive() {
+  if (document.hidden) return;
+  try {
+    const res = await fetch("/api/active");
+    if (res.ok) activeCount = (await res.json()).count || 0;
+  } catch (e) { /* offline: keep the last count */ }
+  updateActiveToast();
+}
+function updateActiveToast() {
+  const show = activeCount >= ACTIVE_MIN && !activeDismissed && !startScreen.hidden;
+  if (show) {
+    $("activeJoin").innerHTML = '<span class="live"></span><span><b>' + fmt(activeCount) +
+      " people</b> are playing Rattle's daily challenge now! Join the fun and see where you rank!</span>";
+  }
+  activeToast.hidden = !show;
+  document.body.classList.toggle("has-toast", show);   // room so it never covers the buttons
+}
+
+// Rebuild the cards for a mode + scope, landing on category `focusId`.
+function setBoards(mode, scope, focusId) {
+  boards.mode = mode; boards.scope = scope;
+  $("bdDaily").classList.toggle("active", mode === "daily");
+  $("bdFree").classList.toggle("active", mode === "free");
+  $("bdLatest").classList.toggle("active", scope === "latest");
+  $("bdAll").classList.toggle("active", scope === "all");
+  $("bdLatest").textContent = mode === "daily" ? "Latest" : "Today";
+
+  let cards = DECK.map((d, i) => ({ id: d.id, idx: i, category: d.category }));
+  if (mode === "daily") {
+    // Today's challenge first, then past dailies (most recent first), then upcoming ones.
+    for (const c of cards) { c.last = lastDailyDay(c.id); c.next = c.last === null ? nextDailyDay(c.id) : null; }
+    cards.sort((a, b) => (b.last ?? -1e9) - (a.last ?? -1e9) || (a.next ?? 1e9) - (b.next ?? 1e9));
+  }
+  boards.cards = cards;
+
+  bdChips.innerHTML = cards.map((c, i) =>
+    '<button class="bd-chip" role="tab" data-i="' + i + '">' +
+    (mode === "daily" && c.last === dayNumber() ? '<span class="dot"></span>' : "") + escapeHtml(c.category) + "</button>").join("");
+  bdTrack.innerHTML = cards.map((c, i) =>
+    '<article class="bd-card" data-i="' + i + '">' + cardHead(c) + '<ol class="bd-list">' + skeleton() + "</ol></article>").join("");
+
+  boards.active = -1;
+  const i = Math.max(0, cards.findIndex((c) => c.id === focusId));
+  requestAnimationFrame(() => { goToCard(i, false); setActiveCard(i); });
+}
+
+function cardHead(c) {
+  const today = dayNumber();
+  let kicker, live = false;
+  if (boards.mode === "daily") {
+    if (c.last === today) { kicker = "Today · Rattle #" + puzzleNumber(); live = true; }
+    else if (boards.scope === "all") kicker = c.last !== null ? "Daily Challenge · All time" : "Daily Challenge";
+    else if (c.last !== null) kicker = "Rattle #" + (c.last - LAUNCH_DAY + 1) + " · " + shortDate(c.last);
+    else kicker = c.next ? "Coming " + shortDate(c.next) : "Not scheduled yet";
+    if (live && boards.scope === "all") kicker = "Live today · All time";
+  } else {
+    kicker = boards.scope === "all" ? "Free Play · All time" : "Free Play · Today";
+  }
+  const isToday = boards.mode === "daily" && c.id === dailyCategoryId();
+  return '<div class="bd-head"><div><div class="bd-kicker' + (live ? " live" : "") + '">' + kicker + "</div>" +
+    '<div class="bd-cat">' + escapeHtml(c.category) + "</div></div>" +
+    '<button class="bd-play" data-play="' + c.idx + '">' + (isToday ? "Play today" : "Free play") + " ›</button></div>";
+}
+function skeleton() {
+  return Array.from({ length: 5 }, () => '<li class="bd-row skel"><span class="r">·</span><span class="n"></span><span class="s"></span></li>').join("");
+}
+
+function goToCard(i, smooth = true) {
+  const card = bdTrack.children[i];
+  if (!card) return;
+  bdTrack.scrollTo({ left: card.offsetLeft - (bdTrack.clientWidth - card.offsetWidth) / 2, behavior: smooth ? "smooth" : "auto" });
+}
+function setActiveCard(i) {
+  if (i === boards.active) return;
+  boards.active = i;
+  [...bdTrack.children].forEach((el, k) => el.classList.toggle("active", k === i));
+  [...bdChips.children].forEach((el, k) => {
+    el.classList.toggle("active", k === i);
+    el.setAttribute("aria-selected", k === i);
+  });
+  const chip = bdChips.children[i];
+  if (chip) bdChips.scrollTo({ left: chip.offsetLeft - (bdChips.clientWidth - chip.offsetWidth) / 2, behavior: "smooth" });
+  $("bdPrev").disabled = i === 0;
+  $("bdNext").disabled = i === boards.cards.length - 1;
+  for (const k of [i, i + 1, i - 1]) if (boards.cards[k]) loadCard(k);
+}
+
+// Which leaderboard a card shows, or null when there is nothing to fetch.
+function cardQuery(c) {
+  if (boards.mode === "free") return "mode=free_play&scope=" + (boards.scope === "all" ? "all" : "today");
+  if (boards.scope === "all") return "mode=daily_challenge&scope=all";
+  return c.last === null ? null : "mode=daily_challenge&scope=today&day=" + dayString(c.last);
+}
+async function loadCard(i) {
+  const c = boards.cards[i], q = cardQuery(c), want = boards.mode + boards.scope;
+  const list = bdTrack.children[i]?.querySelector(".bd-list");
+  if (!list) return;
+  if (!q) { list.outerHTML = emptyCard(c); return; }
+  const key = c.id + "|" + q, hit = boards.cache[key];
+  let top;
+  if (hit && Date.now() - hit.t < 30000) top = hit.top;
+  else {
+    try {
+      const res = await fetch("/api/leaderboard?category=" + encodeURIComponent(c.id) + "&" + q);
+      if (!res.ok) throw new Error("http " + res.status);
+      top = (await res.json()).top || [];
+      boards.cache[key] = { t: Date.now(), top };
+    } catch (e) {
+      top = null;
+    }
+  }
+  // The user may have switched mode or scope while this was loading.
+  if (boards.mode + boards.scope !== want || boards.cards[i] !== c) return;
+  const cur = bdTrack.children[i]?.querySelector(".bd-list, .bd-empty");
+  if (!cur) return;
+  if (top === null) { cur.outerHTML = '<div class="bd-empty"><span class="big">📡</span>Leaderboards are offline right now.</div>'; return; }
+  if (!top.length) { cur.outerHTML = emptyCard(c); return; }
+  const me = getName();
+  cur.outerHTML = '<ol class="bd-list">' + top.map((r, k) =>
+    '<li class="bd-row' + (k < 3 ? " top" : "") + (k === 0 ? " first" : "") + (me && r.player === me ? " me" : "") + '">' +
+    '<span class="r">' + (MEDALS[k] || k + 1) + '</span><span class="n">' + escapeHtml(r.player) + "</span>" +
+    '<span class="s">' + fmt(r.score) + "</span></li>").join("") + "</ol>";
+}
+function emptyCard(c) {
+  const today = dayNumber();
+  let msg;
+  if (boards.mode === "daily" && boards.scope === "latest" && c.last === null)
+    msg = c.next ? "Not a Daily Challenge yet. It's coming " + shortDate(c.next) + ".<br>Warm up in Free Play." : "Not a Daily Challenge yet.";
+  else if (boards.mode === "daily" && boards.scope === "latest" && c.last !== today) msg = "Nobody posted a score that day.";
+  else if (boards.scope === "latest") msg = "No scores yet today.<br>Be the first!";
+  else msg = "No scores yet.<br>Be the first!";
+  return '<div class="bd-empty"><span class="big">🏁</span>' + msg + "</div>";
+}
+
+let bdScrollRaf = 0;
+bdTrack.addEventListener("scroll", () => {
+  cancelAnimationFrame(bdScrollRaf);
+  bdScrollRaf = requestAnimationFrame(() => {
+    const mid = bdTrack.scrollLeft + bdTrack.clientWidth / 2;
+    let best = 0, bestD = Infinity;
+    [...bdTrack.children].forEach((el, k) => {
+      const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - mid);
+      if (d < bestD) { bestD = d; best = k; }
+    });
+    setActiveCard(best);
+  });
+}, { passive: true });
+bdChips.addEventListener("click", (e) => {
+  const b = e.target.closest(".bd-chip");
+  if (b) goToCard(+b.dataset.i);
+});
+bdTrack.addEventListener("click", (e) => {
+  const b = e.target.closest(".bd-play");
+  if (b) {
+    const idx = +b.dataset.play;
+    closeBoards();
+    if (location.hash === "#leaderboards") history.replaceState(null, "", location.pathname + location.search);
+    if (boards.mode === "daily" && DECK[idx].id === dailyCategoryId()) setMode("daily"); else setMode("free", idx);
+    return;
+  }
+  const card = e.target.closest(".bd-card");
+  if (card && +card.dataset.i !== boards.active) goToCard(+card.dataset.i);
+});
+const activeId = () => boards.cards[boards.active]?.id;
+$("bdPrev").addEventListener("click", () => goToCard(boards.active - 1));
+$("bdNext").addEventListener("click", () => goToCard(boards.active + 1));
+$("bdDaily").addEventListener("click", () => setBoards("daily", boards.scope, activeId()));
+$("bdFree").addEventListener("click", () => setBoards("free", boards.scope, activeId()));
+$("bdLatest").addEventListener("click", () => setBoards(boards.mode, "latest", activeId()));
+$("bdAll").addEventListener("click", () => setBoards(boards.mode, "all", activeId()));
+$("boardsBtn").addEventListener("click", openBoards);
+$("boardsBack").addEventListener("click", () => {
+  if (history.state && history.state.boards) history.back(); else { closeBoards(); history.replaceState(null, "", location.pathname + location.search); }
+});
+window.addEventListener("popstate", () => {
+  if (location.hash === "#leaderboards") { if (boardsScreen.hidden) openBoards(); }
+  else if (!boardsScreen.hidden) closeBoards();
+});
+document.addEventListener("keydown", (e) => {
+  if (boardsScreen.hidden) return;
+  if (e.key === "ArrowLeft") goToCard(boards.active - 1);
+  if (e.key === "ArrowRight") goToCard(boards.active + 1);
+});
+
 // ---- wire up ----
 $("startBtn").addEventListener("click", startRound);
 $("prevCat").addEventListener("click", () => loadPuzzle(deckIndex - 1));
 $("nextCat").addEventListener("click", () => loadPuzzle(deckIndex + 1));
-$("againBtn").addEventListener("click", () => { updateStartCard(); resultsScreen.hidden = true; startScreen.hidden = false; });
+$("againBtn").addEventListener("click", () => { updateStartCard(); resultsScreen.hidden = true; startScreen.hidden = false; updateActiveToast(); });
+$("activeJoin").addEventListener("click", () => {
+  activeDismissed = true; updateActiveToast();
+  setMode("daily");
+  $("startBtn").focus();
+});
+$("activeClose").addEventListener("click", () => { activeDismissed = true; updateActiveToast(); });
 $("submitScore").addEventListener("click", postScore);
 $("modeDaily").addEventListener("click", () => setMode("daily"));
 $("modeFree").addEventListener("click", () => setMode("free"));
@@ -530,5 +774,9 @@ $("howModal").addEventListener("click", function (e) { if (e.target === this) th
 // if it is today's category, otherwise Free Play on that category.
 if (challenge && challenge.idx !== dailyIndex()) setMode("free", challenge.idx);
 else setMode("daily");
+if (location.hash === "#leaderboards") openBoards();
+refreshActive();
+setInterval(refreshActive, 2 * 60 * 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshActive(); });
 tickCountdown();
 setInterval(tickCountdown, 1000);

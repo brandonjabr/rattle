@@ -61,7 +61,39 @@
 
       <div class="countdown" id="countdown"></div>
       <button class="big-btn" id="startBtn">Start 60 seconds</button>
-      <button class="link" id="howBtn">How to play</button>
+      <div class="start-links">
+        <button class="link" id="boardsBtn">🏆 Leaderboards</button>
+        <button class="link" id="howBtn">How to play</button>
+      </div>
+    </section>
+
+    <!-- ===== LEADERBOARDS ===== -->
+    <section class="screen boards" id="boardsScreen" hidden>
+      <div class="bd-top">
+        <button class="nav bd-back" id="boardsBack" aria-label="Back">&lsaquo;</button>
+        <h2 class="bd-title">Leaderboards</h2>
+        <span class="bd-spacer"></span>
+      </div>
+
+      <div class="bd-controls">
+        <div class="lb-tabs mode-tabs" role="tablist" aria-label="Game mode">
+          <button class="lb-tab active" id="bdDaily" role="tab">🌍 Daily Challenge</button>
+          <button class="lb-tab" id="bdFree" role="tab">Free Play</button>
+        </div>
+        <div class="lb-tabs" role="tablist" aria-label="Time range">
+          <button class="lb-tab active" id="bdLatest" role="tab">Today</button>
+          <button class="lb-tab" id="bdAll" role="tab">All time</button>
+        </div>
+      </div>
+
+      <div class="bd-chips" id="bdChips" role="tablist" aria-label="Categories"></div>
+
+      <div class="bd-stage">
+        <button class="nav bd-arrow prev" id="bdPrev" aria-label="Previous category">&lsaquo;</button>
+        <div class="bd-track" id="bdTrack"></div>
+        <button class="nav bd-arrow next" id="bdNext" aria-label="Next category">&rsaquo;</button>
+      </div>
+      <div class="bd-hint">Swipe for more categories</div>
     </section>
 
     <!-- ===== GAME ===== -->
@@ -131,6 +163,12 @@
     </section>
 
     <footer>&copy; Brandon Jabr 2026</footer>
+
+    <!-- "N people are playing now" notice (start screen only) -->
+    <div class="toast" id="activeToast" role="status" hidden>
+      <button class="toast-body" id="activeJoin"></button>
+      <button class="toast-x" id="activeClose" aria-label="Dismiss">&times;</button>
+    </div>
   </main>
 
   <!-- How to play -->

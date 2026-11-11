@@ -26,3 +26,13 @@ CREATE TABLE IF NOT EXISTS verified (
   created_at TEXT    NOT NULL,
   PRIMARY KEY (category, answer)
 );
+
+-- Daily Challenge starts (one row per anonymous player per day), for the
+-- "N people are playing now" notice. Same as migrations/0003_plays.sql.
+CREATE TABLE IF NOT EXISTS plays (
+  day        TEXT NOT NULL,
+  pid        TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  PRIMARY KEY (day, pid)
+);
+CREATE INDEX IF NOT EXISTS idx_plays_started ON plays (started_at);
