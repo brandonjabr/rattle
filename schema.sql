@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS scores (
              CHECK (game_type IN ('daily_challenge', 'free_play')),
   day        TEXT    NOT NULL,   -- "YYYY-MM-DD" (UTC); leaderboards reset daily
   player     TEXT    NOT NULL,
+  pid        TEXT,               -- anonymous browser id; one daily_challenge score per pid per day
   score      INTEGER NOT NULL,
   count      INTEGER NOT NULL,
   avg        INTEGER NOT NULL,
@@ -14,6 +15,8 @@ CREATE TABLE IF NOT EXISTS scores (
 
 -- Fresh databases only. An existing one gets game_type from migrations/0002_game_type.sql.
 CREATE INDEX IF NOT EXISTS idx_board ON scores (category, game_type, day, score DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_daily
+  ON scores (day, pid) WHERE game_type = 'daily_challenge' AND pid IS NOT NULL;
 
 -- Answers the AI checked at the end of a round (one row per category + normalized
 -- answer), so each new answer is judged once and the score API can trust it.

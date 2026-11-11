@@ -58,7 +58,9 @@ function updateStartCard() {
   $("nextCat").classList.toggle("off", isDaily);
   $("prevCat").disabled = $("nextCat").disabled = isDaily;
   $("modeHint").innerHTML = isDaily
-    ? "Same category for everyone today. Easiest on Monday, hardest on Sunday."
+    ? (dailyDoneToday()
+        ? "You've posted today's score. Replays can only go on the <b>Free Play</b> leaderboard."
+        : "Same category for everyone today. Easiest on Monday, hardest on Sunday.")
     : "<b>Choose any category</b> with the arrows. Scores go on the <b>Free Play</b> leaderboard.";
   $("countdown").hidden = !isDaily;
   $("startCategory").textContent = P.category + "!";
@@ -232,7 +234,8 @@ function renderResults(from) {
   const best = saveBest(total);
   // Verified answers are sent as typed: the server matches them against its own verified table.
   lastRun = { categoryId: P.id, answers: round.items.map((i) => i.raw || i.name), total, count, dist,
-              daily: round.daily, number: round.number, gameType: round.daily ? GAME_TYPE.daily : GAME_TYPE.free };
+              daily: round.daily, number: round.number,
+              gameType: round.daily && !round.freeOnly ? GAME_TYPE.daily : GAME_TYPE.free };
 
   $("finalSub").textContent = count + " named, avg " + avg + " pts" + (total >= best && total > 0 ? ", new best!" : ", best " + fmt(best));
   $("haul").innerHTML = haulCard(dist, round.items, count);
@@ -290,7 +293,7 @@ async function verifyPending() {
   renderReview(rows);
   if (rows.some((x) => x.state === "accepted")) renderResults(before);
 
-  if (btn.textContent === "Checking answers...") { btn.disabled = false; btn.textContent = "Post my score"; }
+  if (btn.textContent === "Checking answers...") { btn.disabled = false; btn.textContent = postLabel(); }
 }
 
 function renderReview(rows) {
@@ -320,12 +323,13 @@ function row(label, val, tag) {
 }
 
 // ---- leaderboard (Today = this category today, All time = this category ever) ----
-let lbScope = "today";
+let lbScope = "today", lbStickyNote = "";   // sticky = stays put while boards reload
 function setTab(scope) {
   $("tabToday").classList.toggle("active", scope === "today");
   $("tabAll").classList.toggle("active", scope === "all");
 }
 function resetLeaderboardUI() {
+  lbStickyNote = "";
   $("lbWrap").classList.remove("muted");
   $("lbTitle").textContent = lastRun && lastRun.daily ? "Daily Challenge leaderboard" : "Free Play leaderboard";
   $("nameInput").value = getName();
@@ -334,6 +338,24 @@ function resetLeaderboardUI() {
   $("lbNote").textContent = "";
   $("lbList").innerHTML = "";
   lbScope = "today"; setTab("today");
+  // Already posted today's Daily Challenge: this replay can only go on Free Play.
+  if (lastRun && lastRun.gameType === GAME_TYPE.daily && dailyDoneToday()) {
+    postAsFreePlay("You've already posted today's Daily Challenge, so this round can only go on the Free Play leaderboard.");
+  }
+}
+// One Daily Challenge score per player per day (enforced by the server too).
+function dailyDoneToday() {
+  try { return localStorage.getItem("rattle-daily-done") === dayString(dayNumber()); } catch (e) { return false; }
+}
+function markDailyDone(day) { try { localStorage.setItem("rattle-daily-done", day || dayString(dayNumber())); } catch (e) {} }
+function postLabel() { return round && round.freeOnly ? "Post to Free Play" : "Post my score"; }
+function postAsFreePlay(note) {
+  lastRun.gameType = GAME_TYPE.free;
+  if (round) round.freeOnly = true;
+  $("lbTitle").textContent = "Free Play leaderboard";
+  $("submitScore").disabled = false;
+  $("submitScore").textContent = "Post to Free Play";
+  $("lbNote").textContent = lbStickyNote = note;
 }
 async function loadLeaderboard(scope) {
   lbScope = scope; setTab(scope);
@@ -344,7 +366,8 @@ async function loadLeaderboard(scope) {
     if (!res.ok) throw new Error("http " + res.status);
     const data = await res.json();
     renderBoard(data.top, getName());
-    $("lbNote").textContent = data.top.length ? "" : (scope === "all" ? "No scores yet. Be the first." : "Be the first on today's board.");
+    $("lbNote").textContent = lbStickyNote ||
+      (data.top.length ? "" : (scope === "all" ? "No scores yet. Be the first." : "Be the first on today's board."));
   } catch (e) {
     $("lbList").innerHTML = "";
     $("lbNote").textContent = "Leaderboard is offline here. It works once deployed to Cloudflare (or via wrangler pages dev).";
@@ -361,8 +384,19 @@ async function postScore() {
     const res = await fetch("/api/score", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ categoryId: lastRun.categoryId, player: name, answers: lastRun.answers, gameType: lastRun.gameType })
+      body: JSON.stringify({ categoryId: lastRun.categoryId, player: name, pid: playerId(),
+                             answers: lastRun.answers, gameType: lastRun.gameType })
     });
+    if (res.status === 409) {
+      // Server says today's Daily Challenge is already posted (e.g. from before
+      // this browser remembered it). Offer Free Play instead.
+      const err = await res.json().catch(() => ({}));
+      markDailyDone();
+      postAsFreePlay(err.error || "You've already posted today's Daily Challenge. For the rest of the day you can only post Free Play scores.");
+      loadLeaderboard("today");
+      updateStartCard();
+      return;
+    }
     if (res.status === 400) {
       // e.g. the Daily Challenge rolled over to a new category mid-round
       const err = await res.json().catch(() => ({}));
@@ -372,16 +406,18 @@ async function postScore() {
     }
     if (!res.ok) throw new Error("http " + res.status);
     const data = await res.json();
+    lbStickyNote = "";
+    if (data.gameType === GAME_TYPE.daily) markDailyDone(data.day);
     lbScope = "today"; setTab("today");
     renderBoard(data.top, name);
     const allPart = data.allTimeRank ? ", #" + data.allTimeRank + " all time" : "";
     $("lbNote").textContent = "You are #" + data.rank + " today" + allPart +
-      (lastRun.daily ? " in the Daily Challenge." : " in Free Play " + P.category.toLowerCase() + ".");
+      (data.gameType === GAME_TYPE.daily ? " in the Daily Challenge." : " in Free Play " + P.category.toLowerCase() + ".");
     btn.textContent = "Posted!";
     lastRank = data.rank; lastAllRank = data.allTimeRank || null;
     $("shareBtn").textContent = "Share my rank";
   } catch (e) {
-    btn.disabled = false; btn.textContent = "Post my score";
+    btn.disabled = false; btn.textContent = postLabel();
     $("lbNote").textContent = "Could not reach the leaderboard. Deploy to Cloudflare to enable it.";
   }
 }
@@ -462,7 +498,7 @@ function buildShareText() {
   t += "I rattled off " + lastRun.count + " for " + fmt(lastRun.total) + " points! 🎉\n";
   t += "My haul, from common to legendary:\n" + parts.join("\n");
   if (lastRank) t += "\n\n🏆 #" + lastRank + " today" + (lastAllRank ? ", #" + lastAllRank + " all-time" : "") +
-    (lastRun.daily ? "." : " in Free Play.");
+    (lastRun.gameType === GAME_TYPE.daily ? "." : " in Free Play.");
   return t + "\n\nCan you beat me? 👇\n" + challengeUrl();
 }
 // Link that opens this category with my score as the target to beat.

@@ -1,11 +1,13 @@
 /*
  * POST /api/score   (Cloudflare Pages Function, bound to D1 as `env.DB`)
  *
- * Body: { categoryId, player, answers: [string, ...], gameType: "daily_challenge" | "free_play" }
+ * Body: { categoryId, player, pid, answers: [string, ...], gameType: "daily_challenge" | "free_play" }
  * The server re-scores the answers from its own copy of the deck, so a player
  * can only earn points for real answers at their real values. It stores the
  * score and returns that mode's leaderboard for the day plus this player's rank.
- * A daily_challenge score must be for today's Daily Challenge category.
+ * A daily_challenge score must be for today's Daily Challenge category, and each
+ * player (pid = anonymous browser id) gets one daily_challenge score per day.
+ * A second one is refused with 409 { code: "daily_done" }; Free Play is unlimited.
  */
 import { DECK } from "../../deck.js";
 import { scoreRound, indexCategory, norm } from "../../scoring.js";
@@ -13,6 +15,8 @@ import { dailyCategoryId, dayNumber, dayString } from "../../schedule.js";
 
 const GAME_TYPES = ["daily_challenge", "free_play"];
 const GRACE_MS = 10 * 60 * 1000;   // a round started just before midnight UTC still counts for that day
+const PID = /^[a-z0-9-]{8,64}$/i;
+const DAILY_DONE = "You've already posted today's Daily Challenge. For the rest of the day you can only post Free Play scores.";
 
 export async function onRequestPost({ request, env }) {
   let body;
@@ -20,6 +24,7 @@ export async function onRequestPost({ request, env }) {
 
   const categoryId = String(body.categoryId || "");
   const player = cleanName(body.player);
+  const pid = PID.test(String(body.pid || "")) ? String(body.pid) : null;
   const answers = Array.isArray(body.answers) ? body.answers.slice(0, 500).map(String) : [];
 
   const puzzle = DECK.find((d) => d.id === categoryId);
@@ -32,13 +37,24 @@ export async function onRequestPost({ request, env }) {
     if (categoryId === dailyCategoryId(n)) day = dayString(n);
     else if (categoryId === dailyCategoryId(n - 1) && now - n * 86400000 < GRACE_MS) day = dayString(n - 1);
     else return json({ error: "That isn't today's Daily Challenge. Play it in Free Play instead." }, 400);
+    if (!pid) return json({ error: "Please refresh the page and try again." }, 400);
+    const done = await env.DB.prepare(
+      "SELECT 1 FROM scores WHERE day=?1 AND pid=?2 AND game_type='daily_challenge' LIMIT 1"
+    ).bind(day, pid).first();
+    if (done) return json({ error: DAILY_DONE, code: "daily_done" }, 409);
   }
 
   const r = scoreRound(puzzle.entries, answers, await verifiedExtras(env, categoryId, puzzle.entries, answers));
 
-  await env.DB.prepare(
-    "INSERT INTO scores (category, game_type, day, player, score, count, avg, created_at) VALUES (?1,?2,?3,?4,?5,?6,?7, datetime('now'))"
-  ).bind(categoryId, gameType, day, player, r.total, r.count, r.avg).run();
+  try {
+    await env.DB.prepare(
+      "INSERT INTO scores (category, game_type, day, player, pid, score, count, avg, created_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8, datetime('now'))"
+    ).bind(categoryId, gameType, day, player, pid, r.total, r.count, r.avg).run();
+  } catch (e) {
+    // Two daily submits racing: the unique index lets only the first one in.
+    if (/UNIQUE/i.test(String(e && e.message))) return json({ error: DAILY_DONE, code: "daily_done" }, 409);
+    throw e;
+  }
 
   // today's rank for this category and mode
   const betterToday = await env.DB.prepare(
