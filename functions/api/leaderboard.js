@@ -14,10 +14,10 @@ export async function onRequestGet({ request, env }) {
 
   const stmt = scope === "all"
     ? env.DB.prepare(
-        "SELECT player, MAX(score) AS score FROM scores WHERE category=?1 AND game_type=?2 GROUP BY player ORDER BY score DESC, player ASC LIMIT 20"
+        "SELECT MIN(player) AS player, MAX(score) AS score FROM scores WHERE category=?1 AND game_type=?2 GROUP BY LOWER(player) ORDER BY score DESC, player ASC LIMIT 20"
       ).bind(category, mode)
     : env.DB.prepare(
-        "SELECT player, MAX(score) AS score FROM scores WHERE category=?1 AND game_type=?2 AND day=?3 GROUP BY player ORDER BY score DESC, player ASC LIMIT 20"
+        "SELECT MIN(player) AS player, MAX(score) AS score FROM scores WHERE category=?1 AND game_type=?2 AND day=?3 GROUP BY LOWER(player) ORDER BY score DESC, player ASC LIMIT 20"
       ).bind(category, mode, day);
 
   const { results } = await stmt.all();

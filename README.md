@@ -1,6 +1,6 @@
 # Rattle
 
-A daily **60-second "name as many X as you can, deep cuts worth more" game**. One category; name as many things as you can
+A daily **90-second "name as many X as you can, deep cuts worth more" game**. One category; name as many things as you can
 before the clock runs out. Every answer is worth **0–1000 points** by how rare it
 is — common picks score a little, deep cuts score big — and at the end you earn
 **strategy bonuses** for going wide (lots of answers) or going deep (only rare ones).
@@ -28,7 +28,7 @@ To go live on Cloudflare (Pages + Functions + D1 database + your own domain), fo
 
 ## How a round works
 
-1. Hit **Start** — you get **60 seconds** (circular countdown up top).
+1. Hit **Start** — you get **90 seconds** (circular countdown up top).
 2. Type an answer, press enter. Each valid, new answer scores points by rarity and
    pops in as a colored chip.
 3. Duplicates and non-answers just flash — no penalty, keep going.

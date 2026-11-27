@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Libre+Franklin:wght@500;600;700;800&display=block" />
+<style>
+  :root { --c0:#5d81a8; --c1:#6aaa64; --c2:#c9a227; --c3:#d07a3c; --c4:#c4524a; --c5:#8e6bb8; --ink:#1d1b18; --muted:#6e695f; }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body { background: #f7f4ee; font-family: "Libre Franklin", sans-serif; color: var(--ink);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
+  .logo { display: flex; gap: 12px; margin-bottom: 40px; }
+  .logo span { width: 104px; height: 104px; border-radius: 9px; display: grid; place-items: center;
+    color: #fff; font-weight: 800; font-size: 64px; }
+  h1 { font-family: "Fraunces", serif; font-weight: 700; font-size: 64px; letter-spacing: -0.02em; margin: 0 0 14px; line-height: 1.05; }
+  p { margin: 0 0 40px; font-size: 30px; font-weight: 500; color: var(--muted); }
+  p b { color: #538d4e; font-weight: 700; }
+  .chips { display: flex; gap: 14px; }
+  .chip { display: inline-flex; align-items: center; gap: 12px; padding: 11px 12px 11px 22px; border-radius: 999px;
+    font-size: 28px; font-weight: 600; background: color-mix(in srgb, var(--c) 12%, #fff); border: 2.5px solid color-mix(in srgb, var(--c) 55%, transparent); }
+  .chip i { font-style: normal; font-size: 22px; font-weight: 800; color: #fff; background: var(--c); padding: 4px 13px; border-radius: 999px; }
+  .url { position: absolute; bottom: 30px; font-size: 24px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; }
+</style>
+</head>
+<body>
+  <div class="logo">
+    <span style="background:var(--c0)">R</span><span style="background:var(--c1)">A</span><span style="background:var(--c2)">T</span><span style="background:var(--c3)">T</span><span style="background:var(--c4)">L</span><span style="background:var(--c5)">E</span>
+  </div>
+  <h1>Name as many as you can in 90 seconds.</h1>
+  <p>The <b>rarer</b> the answer, the <b>more points</b> it's worth.</p>
+  <div class="chips">
+    <span class="chip" style="--c:var(--c0)">Apple <i>20</i></span>
+    <span class="chip" style="--c:var(--c2)">Lychee <i>343</i></span>
+    <span class="chip" style="--c:var(--c3)">Durian <i>510</i></span>
+    <span class="chip" style="--c:var(--c5)">Santol <i>940</i></span>
+  </div>
+  <div class="url">playrattle.io · a new category every day</div>
+</body>
+</html>

@@ -1,9 +1,9 @@
-/* Rattle, 60 second rarity rush (frontend) */
-import { DECK } from "./deck.js?v=50b5bcecd4";
-import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js?v=50b5bcecd4";
-import { dailyCategoryId, dayNumber, dayString, puzzleNumber, LAUNCH_DAY } from "./schedule.js?v=50b5bcecd4";
+/* Rattle, 90 second rarity rush (frontend) */
+import { DECK } from "./deck.js?v=14eb92b158";
+import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js?v=14eb92b158";
+import { dailyCategoryId, dayNumber, dayString, puzzleNumber, LAUNCH_DAY } from "./schedule.js?v=14eb92b158";
 
-const TOTAL = 60;
+const TOTAL = 90;   // round length in seconds
 const R = 52, C = 2 * Math.PI * R;
 const $ = (id) => document.getElementById(id);
 
@@ -57,13 +57,14 @@ function updateStartCard() {
   $("prevCat").classList.toggle("off", isDaily);
   $("nextCat").classList.toggle("off", isDaily);
   $("prevCat").disabled = $("nextCat").disabled = isDaily;
-  const played = isDaily && loadDaily();
+  const played = isDaily && (loadDaily() || dailyPostedOnly);
   $("modeHint").innerHTML = isDaily
     ? (played
-        ? "✅ You've played today's challenge and scored <b>" + fmt(dailyTotal(played)) + "</b>. Come back tomorrow, or try <b>Free Play</b>."
+        ? "✅ You've played today's challenge and scored <b>" + fmt(played.items ? dailyTotal(played) : played.score) +
+          "</b>. Come back tomorrow, or try <b>Free Play</b>."
         : "Same category for everyone today. Easiest on Monday, hardest on Sunday.")
     : "<b>Choose any category</b> with the arrows. Scores go on the <b>Free Play</b> leaderboard.";
-  $("startBtn").textContent = played ? "See my result" : "Start 60 seconds";
+  $("startBtn").textContent = !played ? "Start 90 seconds" : played.items ? "See my result" : "See today's leaderboard";
   $("countdown").hidden = !isDaily;
   $("startCategory").textContent = P.category + "!";
   const banner = $("challengeBanner");
@@ -87,14 +88,23 @@ ringFg.style.strokeDashoffset = 0;
 // ---- round state ----
 let round = null, raf = null, lastRun = null, lastRank = null, lastAllRank = null;
 
-function startRound() {
-  // The Daily Challenge is one play per day on this device: show the saved result instead.
-  if (mode === "daily" && loadDaily()) { showDailyResult(); return; }
+async function startRound() {
+  // The Daily Challenge is one play per day: show the saved result instead.
+  if (mode === "daily") {
+    if (!loadDaily() && !dailyPostedOnly) {
+      $("startBtn").disabled = true;
+      await Promise.race([checkDailyOnServer(), new Promise((r) => setTimeout(r, 2500))]);
+      $("startBtn").disabled = false;
+    }
+    if (loadDaily()) { showDailyResult(); return; }
+    if (dailyPostedOnly) { openBoards(); return; }
+  }
   if (mode === "daily") recordDailyStart();
   activeToast.hidden = true; document.body.classList.remove("has-toast");
   round = { items: [], names: {}, base: 0, pending: [], pendingKeys: {}, start: performance.now(), ended: false,
             daily: mode === "daily", number: puzzleNumber(), day: dayString(dayNumber()), cat: P.id };
   saveDaily();   // saved the moment it starts, so refreshing mid-round can't buy a second try
+  syncDaily();
   startScreen.hidden = true; resultsScreen.hidden = true; gameScreen.hidden = false;
   chipsEl.innerHTML = ""; scoreEl.textContent = "0"; countEl.textContent = "0";
   $("catSmall").textContent = P.category.toLowerCase();
@@ -208,7 +218,7 @@ function endRound() {
   if (round.ended) return;
   round.ended = true; cancelAnimationFrame(raf);
   guessEl.disabled = true; timerWrap.classList.remove("pulse");
-  saveDaily();
+  saveDaily(); syncDaily();
   showResults(true);
 }
 
@@ -238,20 +248,55 @@ function showResults(fresh) {
 }
 
 // ---- today's Daily Challenge, saved on this device (one play per day) ----
+// Kept in three places: memory (this visit), browser storage (refreshes), and the
+// server (refreshes even when the browser won't keep site data). See /api/daily-run.
 const DAILY_KEY = "rattle-daily";
+let memDaily = null;        // this visit's copy, works even if storage is blocked
+let dailyPostedOnly = null; // server knows a posted daily score but has no run saved
+function isToday(d) { return d && d.day === dayString(dayNumber()) && d.cat === dailyCategoryId(); }
 function loadDaily() {
-  try {
-    const d = JSON.parse(localStorage.getItem(DAILY_KEY) || "null");
-    return d && d.day === dayString(dayNumber()) && d.cat === dailyCategoryId() ? d : null;
-  } catch (e) { return null; }
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(DAILY_KEY) || "null"); } catch (e) {}
+  return isToday(stored) ? stored : isToday(memDaily) ? memDaily : null;
 }
-function saveDaily() {
-  if (!round || !round.daily) return;
-  const d = { day: round.day, cat: round.cat, number: round.number, ended: round.ended,
+function storeDaily(d) {
+  memDaily = d;
+  try { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); } catch (e) {}
+}
+function dailyDone() { return !!(loadDaily() || dailyPostedOnly); }
+function currentDaily() {
+  return { day: round.day, cat: round.cat, number: round.number, ended: round.ended,
     items: round.items.map((i) => ({ name: i.name, points: i.points, raw: i.raw })),
     pending: round.pending, reviewed: round.reviewed || null,
     posted: !!round.posted, rank: round.rank || null, allRank: round.allRank || null };
-  try { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); } catch (e) {}
+}
+function saveDaily() {
+  if (!round || !round.daily) return;
+  storeDaily(currentDaily());
+}
+// Copy today's run to the server. `beacon` = the page is closing (mid-round).
+function syncDaily(beacon) {
+  if (!round || !round.daily) return;
+  const body = JSON.stringify({ pid: persistentPid(), run: currentDaily() });
+  if (beacon && navigator.sendBeacon) { navigator.sendBeacon("/api/daily-run", body); return; }
+  fetch("/api/daily-run", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true })
+    .catch(() => {});
+}
+// Ask the server whether this player already played today (once per visit).
+let dailyCheck = null;
+function checkDailyOnServer() {
+  if (!dailyCheck) {
+    const pid = persistentPid();
+    dailyCheck = fetch("/api/daily-run" + (pid ? "?pid=" + encodeURIComponent(pid) : ""), { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        if (data.run && isToday(data.run) && !loadDaily()) storeDaily(data.run);
+        else if (data.posted && !loadDaily()) dailyPostedOnly = data.posted;
+      })
+      .catch(() => {});
+  }
+  return dailyCheck;
 }
 function dailyTotal(d) {
   const pts = d.items.map((i) => i.points), base = pts.reduce((a, b) => a + b, 0), n = pts.length;
@@ -272,7 +317,7 @@ function showDailyResult() {
             restored: true };
   for (const i of round.items) { round.names[i.name] = true; round.base += i.points; }
   for (const t of round.pending) round.pendingKeys[norm(t)] = true;
-  if (!d.ended) saveDaily();
+  if (!d.ended) { saveDaily(); syncDaily(); }
   showResults(false);
   return true;
 }
@@ -355,7 +400,7 @@ async function verifyPending() {
   if (!rows.some((x) => x.state === "unchecked")) {
     round.reviewed = rows.map(({ answer, state, name, pts }) => ({ answer, state, name, pts }));
   }
-  saveDaily();
+  saveDaily(); syncDaily();
 
   if (btn.textContent === "Checking answers...") { btn.disabled = false; btn.textContent = "Post my score"; }
 }
@@ -420,7 +465,7 @@ function resetLeaderboardUI() {
 function markPosted(rank, allRank, note) {
   round.posted = true; round.rank = rank || null; round.allRank = allRank || null;
   lastRank = round.rank; lastAllRank = round.allRank;
-  saveDaily();
+  saveDaily(); syncDaily();
   $("submitScore").disabled = true;
   $("submitScore").textContent = "Posted ✓";
   if (note) $("lbNote").textContent = lbStickyNote = note;
@@ -444,20 +489,27 @@ async function loadLeaderboard(scope) {
 }
 async function postScore() {
   if (!lastRun) return;
-  const name = ($("nameInput").value.trim() || "Anonymous").slice(0, 20);
-  setName(name, $("rememberName").checked);
+  const name = $("nameInput").value.replace(/\s+/g, " ").trim().slice(0, 20);   // blank = server picks "Player 1234"
   const btn = $("submitScore");
   btn.disabled = true; btn.textContent = "Posting...";
   try {
     const res = await fetch("/api/score", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ categoryId: lastRun.categoryId, player: name, pid: playerId(),
+      body: JSON.stringify({ categoryId: lastRun.categoryId, player: name, pid: persistentPid(),
                              answers: lastRun.answers, gameType: lastRun.gameType })
     });
     if (res.status === 409) {
-      // Server says this device already posted today's Daily Challenge (e.g. from another tab).
       const err = await res.json().catch(() => ({}));
+      if (err.code === "name_taken") {
+        // Someone else owns that name: nothing was posted, let them pick another.
+        btn.disabled = false; btn.textContent = "Post my score";
+        $("lbNote").textContent = lbStickyNote = err.error || "That name is taken. Please pick another.";
+        $("nameInput").classList.add("taken");
+        $("nameInput").focus(); $("nameInput").select();
+        return;
+      }
+      // Server says this device already posted today's Daily Challenge (e.g. from another tab).
       markPosted(null, null, err.error || "You've already posted today's Daily Challenge. For the rest of the day you can only post Free Play scores.");
       loadLeaderboard("today");
       return;
@@ -472,9 +524,13 @@ async function postScore() {
     if (!res.ok) throw new Error("http " + res.status);
     const data = await res.json();
     lbStickyNote = "";
+    $("nameInput").classList.remove("taken");
+    // The server confirms the name (or picked one if it was blank).
+    setName(data.player, $("rememberName").checked);
+    $("nameInput").value = data.player;
     if (data.gameType === GAME_TYPE.daily) markPosted(data.rank, data.allTimeRank);
     lbScope = "today"; setTab("today");
-    renderBoard(data.top, name);
+    renderBoard(data.top, data.player);
     const allPart = data.allTimeRank ? ", #" + data.allTimeRank + " all time" : "";
     $("lbNote").textContent = "You are #" + data.rank + " today" + allPart +
       (data.gameType === GAME_TYPE.daily ? " in the Daily Challenge." : " in Free Play " + P.category.toLowerCase() + ".");
@@ -605,6 +661,7 @@ function tickCountdown() {
   const d = dayNumber();
   if (d !== lastDay) {               // day rolled over: refresh the daily category
     lastDay = d;
+    dailyPostedOnly = null; dailyCheck = null;   // yesterday's "already played" no longer applies
     if (!startScreen.hidden && mode === "daily") loadPuzzle(dailyIndex());
   }
 }
@@ -669,29 +726,29 @@ let activeCount = 0, activeDismissed = false;
 // Anonymous id kept in this browser, so a player counts once per day. If the browser
 // blocks storage (Safari "Block All Cookies", some in-app browsers), fall back to an id
 // for this visit so posting still works; the server also has its own fallback.
-let memPid = null;
 function newPid() {
   try { if (crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
   return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 8);
 }
-function playerId() {
+// The id only counts if this browser actually keeps it. Otherwise send none, and the
+// server uses its own stable stand-in (a hash of the connection) for this player.
+// (A fresh random id per visit would let a refresh look like a new player.)
+function persistentPid() {
   try {
     let id = localStorage.getItem("rattle-pid");
     if (!id || !/^[a-z0-9-]{8,64}$/i.test(id)) {
       id = newPid();
       localStorage.setItem("rattle-pid", id);
-      if (localStorage.getItem("rattle-pid") !== id) throw new Error("storage not kept");
+      if (localStorage.getItem("rattle-pid") !== id) return null;
     }
     return id;
   } catch (e) {
-    return memPid || (memPid = newPid());
+    return null;
   }
 }
 function recordDailyStart() {
-  const pid = playerId();
-  if (!pid) return;
   fetch("/api/active", { method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ pid }), keepalive: true }).catch(() => {});
+    body: JSON.stringify({ pid: persistentPid() }), keepalive: true }).catch(() => {});
 }
 async function refreshActive() {
   if (document.hidden) return;
@@ -702,7 +759,7 @@ async function refreshActive() {
   updateActiveToast();
 }
 function updateActiveToast() {
-  const show = activeCount >= ACTIVE_MIN && !activeDismissed && !startScreen.hidden && !loadDaily();
+  const show = activeCount >= ACTIVE_MIN && !activeDismissed && !startScreen.hidden && !dailyDone();
   if (show) {
     $("activeJoin").innerHTML = '<span class="live"></span><span><b>' + fmt(activeCount) +
       " people</b> are playing Rattle's daily challenge now! Join the fun and see where you rank!</span>";
@@ -898,6 +955,7 @@ $("activeJoin").addEventListener("click", () => {
 });
 $("activeClose").addEventListener("click", () => { activeDismissed = true; updateActiveToast(); });
 $("submitScore").addEventListener("click", postScore);
+$("nameInput").addEventListener("input", () => $("nameInput").classList.remove("taken"));
 $("modeDaily").addEventListener("click", () => setMode("daily"));
 $("modeFree").addEventListener("click", () => setMode("free"));
 $("tabToday").addEventListener("click", () => loadLeaderboard("today"));
@@ -913,6 +971,17 @@ if (challenge && challenge.idx !== dailyIndex()) setMode("free", challenge.idx);
 else setMode("daily");
 if (location.hash === "#leaderboards") openBoards();
 else if (mode === "daily" && loadDaily()) showDailyResult();   // already played today: show the result
+// Also ask the server, for browsers that don't keep site data between visits.
+checkDailyOnServer().then(() => {
+  if (!startScreen.hidden && mode === "daily") {
+    if (loadDaily()) showDailyResult(); else updateStartCard();
+    updateActiveToast();
+  }
+});
+// Leaving mid-round (refresh, closing the tab): save what they have so far.
+window.addEventListener("pagehide", () => {
+  if (round && round.daily && !round.ended) { saveDaily(); syncDaily(true); }
+});
 refreshActive();
 setInterval(refreshActive, 2 * 60 * 1000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshActive(); });

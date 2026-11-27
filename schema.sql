@@ -39,3 +39,21 @@ CREATE TABLE IF NOT EXISTS plays (
   PRIMARY KEY (day, pid)
 );
 CREATE INDEX IF NOT EXISTS idx_plays_started ON plays (started_at);
+
+-- Each player's Daily Challenge run for the day (same as migrations/0005_daily_runs.sql).
+CREATE TABLE IF NOT EXISTS daily_runs (
+  day        TEXT NOT NULL,
+  pid        TEXT NOT NULL,
+  cat        TEXT NOT NULL,
+  data       TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (day, pid)
+);
+
+-- Unique leaderboard names (same as migrations/0006_names.sql).
+CREATE TABLE IF NOT EXISTS names (
+  name_key   TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  pid        TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);

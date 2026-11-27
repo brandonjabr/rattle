@@ -8,6 +8,9 @@
  * A daily_challenge score must be for today's Daily Challenge category, and each
  * player (pid = anonymous browser id) gets one daily_challenge score per day.
  * A second one is refused with 409 { code: "daily_done" }; Free Play is unlimited.
+ * Names are unique: the first player to post a name owns it (ignoring capitals and
+ * spaces). Someone else using it gets 409 { code: "name_taken" }. A blank name gets
+ * a generated one like "Player 4821".
  */
 import { DECK } from "../../deck.js";
 import { scoreRound, indexCategory, norm } from "../../scoring.js";
@@ -23,7 +26,7 @@ export async function onRequestPost({ request, env }) {
   try { body = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
 
   const categoryId = String(body.categoryId || "");
-  const player = cleanName(body.player);
+  const typed = cleanName(body.player);
   // Anonymous device id from the browser. If it's missing (storage blocked, or a page
   // loaded before an update), use a stand-in from a hash of the connection instead of
   // refusing the score: same network + same browser = same player for the day.
@@ -50,6 +53,13 @@ export async function onRequestPost({ request, env }) {
     if (done) return json({ error: DAILY_DONE, code: "daily_done" }, 409);
   }
 
+  // Claim the name for this player, or refuse if someone else already has it.
+  const claim = await claimName(env, typed, pid);
+  if (claim.taken) {
+    return json({ error: "\u201c" + typed + "\u201d is already taken on the leaderboard. Please pick another name.", code: "name_taken" }, 409);
+  }
+  const player = claim.name;
+
   const r = scoreRound(puzzle.entries, answers, await verifiedExtras(env, categoryId, puzzle.entries, answers));
 
   try {
@@ -64,13 +74,13 @@ export async function onRequestPost({ request, env }) {
 
   // today's rank for this category and mode
   const betterToday = await env.DB.prepare(
-    "SELECT COUNT(*) AS c FROM (SELECT player, MAX(score) s FROM scores WHERE category=?1 AND game_type=?2 AND day=?3 AND player!=?5 GROUP BY player) WHERE s > ?4"
+    "SELECT COUNT(*) AS c FROM (SELECT MAX(score) s FROM scores WHERE category=?1 AND game_type=?2 AND day=?3 AND LOWER(player)!=LOWER(?5) GROUP BY LOWER(player)) WHERE s > ?4"
   ).bind(categoryId, gameType, day, r.total, player).first();
   const rank = (betterToday?.c ?? 0) + 1;
 
   // all-time rank for this category and mode
   const betterAll = await env.DB.prepare(
-    "SELECT COUNT(*) AS c FROM (SELECT player, MAX(score) s FROM scores WHERE category=?1 AND game_type=?2 AND player!=?4 GROUP BY player) WHERE s > ?3"
+    "SELECT COUNT(*) AS c FROM (SELECT MAX(score) s FROM scores WHERE category=?1 AND game_type=?2 AND LOWER(player)!=LOWER(?4) GROUP BY LOWER(player)) WHERE s > ?3"
   ).bind(categoryId, gameType, r.total, player).first();
   const allTimeRank = (betterAll?.c ?? 0) + 1;
 
@@ -94,7 +104,7 @@ async function verifiedExtras(env, category, entries, answers) {
 
 async function topScores(env, category, gameType, day) {
   const { results } = await env.DB.prepare(
-    "SELECT player, MAX(score) AS score FROM scores WHERE category=?1 AND game_type=?2 AND day=?3 GROUP BY player ORDER BY score DESC, player ASC LIMIT 20"
+    "SELECT MIN(player) AS player, MAX(score) AS score FROM scores WHERE category=?1 AND game_type=?2 AND day=?3 GROUP BY LOWER(player) ORDER BY score DESC, player ASC LIMIT 20"
   ).bind(category, gameType, day).all();
   return results || [];
 }
@@ -107,7 +117,25 @@ async function fallbackPid(request) {
 }
 
 function cleanName(v) {
-  const s = String(v || "").replace(/[\u0000-\u001f]/g, "").trim().slice(0, 20);
-  return s || "Anonymous";
+  return String(v || "").replace(/[\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim().slice(0, 20);
+}
+const nameKey = (n) => n.toLowerCase();
+
+// Returns { name } once this player owns the name, or { taken: true }.
+// A blank name gets "Player NNNN" (derived from the player id, so it's stable).
+async function claimName(env, typed, pid) {
+  let candidates = [typed];
+  if (!typed) {
+    const h = [...pid].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    candidates = [0, 1, 2, 3, 4].map((k) => "Player " + String((h + k * 7919) % 10000).padStart(4, "0"));
+  }
+  for (const name of candidates) {
+    const key = nameKey(name);
+    await env.DB.prepare("INSERT OR IGNORE INTO names (name_key, name, pid, created_at) VALUES (?1,?2,?3, datetime('now'))")
+      .bind(key, name, pid).run();
+    const row = await env.DB.prepare("SELECT pid, name FROM names WHERE name_key=?1").bind(key).first();
+    if (row && row.pid === pid) return { name: row.name };   // keep the spelling it was claimed with
+  }
+  return { taken: true };
 }
 function json(obj, status = 200) { return Response.json(obj, { status }); }

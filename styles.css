@@ -1,4 +1,4 @@
-/* ===== Rattle · 60s rush · warm, refined newsprint look (NYT Games / Wordle inspired) ===== */
+/* ===== Rattle · 90s rush · warm, refined newsprint look (NYT Games / Wordle inspired) ===== */
 :root {
   color-scheme: light;
   --bg: #f7f4ee;          /* warm paper */
@@ -251,6 +251,7 @@ body {
 .lb-entry { display: flex; gap: 8px; margin-bottom: 10px; }
 #nameInput { flex: 1; font-family: inherit; font-size: 16px; padding: 12px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); outline: none; }
 #nameInput:focus { border-color: var(--ink); }
+#nameInput.taken { border-color: var(--bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 18%, transparent); }
 .remember { display: flex; align-items: center; gap: 8px; margin: -2px 4px 12px; color: var(--muted); font-size: 0.84rem; font-weight: 600; cursor: pointer; user-select: none; }
 .remember input { width: 17px; height: 17px; margin: 0; accent-color: var(--good); cursor: pointer; }
 .lb-list { list-style: none; margin: 0; padding: 0; }

@@ -1,6 +1,6 @@
 # Rattle — design & pipeline spec
 
-A daily **60-second rarity rush**. One category per day; name as many things as you
+A daily **90-second rarity rush**. One category per day; name as many things as you
 can before the clock runs out. Every answer is worth **0–1000 points** by how rare
 it is, and at the end you earn **strategy bonuses** that reward either going wide
 (lots of answers) or going deep (only rare ones) — so different styles can both win.
@@ -13,7 +13,7 @@ the real product generates and serves a new, trustworthy puzzle every day.
 
 ## 1. Why it works (design pillars)
 
-- **Time pressure + deep-knowledge flex.** 60 seconds turns recall into a thrill;
+- **Time pressure + deep-knowledge flex.** 90 seconds turns recall into a thrill;
   the rarity scoring means your niche knowledge is what separates a good score from
   a great one.
 - **"I can't believe that counts."** Naming an obscure, half-remembered answer and
@@ -27,7 +27,7 @@ the real product generates and serves a new, trustworthy puzzle every day.
 
 ## 2. Rules & scoring (this game)
 
-- **60-second timer** (circular countdown). Name as many valid, unique answers as
+- **90-second timer** (circular countdown). Name as many valid, unique answers as
   you can.
 - Each answer scores **points = f(rarity)**, mapped to 0–1000 so commons are worth a
   little and deep cuts a lot. Points are shown live and chips are colored by band.

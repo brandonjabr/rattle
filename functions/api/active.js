@@ -13,8 +13,13 @@ const CACHE_SECONDS = 60;
 export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
-  const pid = String(body.pid || "");
-  if (!PID.test(pid)) return json({ error: "Bad player id" }, 400);
+  // Browser's anonymous id, or a connection hash when it keeps none (same as /api/score).
+  let pid = String(body.pid || "");
+  if (!PID.test(pid)) {
+    const ip = request.headers.get("CF-Connecting-IP") || "", ua = request.headers.get("User-Agent") || "";
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("rattle|" + ip + "|" + ua));
+    pid = "h-" + [...new Uint8Array(buf)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
 
   await env.DB.prepare(
     "INSERT OR IGNORE INTO plays (day, pid, started_at) VALUES (?1, ?2, datetime('now'))"
