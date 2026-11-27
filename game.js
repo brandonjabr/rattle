@@ -1,7 +1,7 @@
 /* Rattle, 90 second rarity rush (frontend) */
-import { DECK } from "./deck.js?v=14eb92b158";
-import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js?v=14eb92b158";
-import { dailyCategoryId, dayNumber, dayString, puzzleNumber, LAUNCH_DAY } from "./schedule.js?v=14eb92b158";
+import { DECK } from "./deck.js?v=aeaf2c17ca";
+import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js?v=aeaf2c17ca";
+import { dailyCategoryId, dayNumber, dayString, puzzleNumber, LAUNCH_DAY } from "./schedule.js?v=aeaf2c17ca";
 
 const TOTAL = 90;   // round length in seconds
 const R = 52, C = 2 * Math.PI * R;
@@ -504,7 +504,9 @@ async function postScore() {
       if (err.code === "name_taken") {
         // Someone else owns that name: nothing was posted, let them pick another.
         btn.disabled = false; btn.textContent = "Post my score";
-        $("lbNote").textContent = lbStickyNote = err.error || "That name is taken. Please pick another.";
+        const msg = err.error || "Username already taken. Please use a unique username!";
+        $("lbNote").textContent = lbStickyNote = msg;
+        showPopup(msg);
         $("nameInput").classList.add("taken");
         $("nameInput").focus(); $("nameInput").select();
         return;
@@ -557,6 +559,14 @@ function renderBoard(top, myName) {
 }
 
 // ---- helpers ----
+let popupTimer = 0;
+function showPopup(msg) {
+  $("popupText").textContent = msg;
+  const el = $("popup");
+  el.hidden = true; void el.offsetWidth; el.hidden = false;   // replay the entrance animation
+  clearTimeout(popupTimer);
+  popupTimer = setTimeout(() => { el.hidden = true; }, 5000);
+}
 function fmt(n) { return n.toLocaleString("en-US"); }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function animateCount(el, from, to, dur) {
@@ -955,6 +965,7 @@ $("activeJoin").addEventListener("click", () => {
 });
 $("activeClose").addEventListener("click", () => { activeDismissed = true; updateActiveToast(); });
 $("submitScore").addEventListener("click", postScore);
+$("popupClose").addEventListener("click", () => { $("popup").hidden = true; });
 $("nameInput").addEventListener("input", () => $("nameInput").classList.remove("taken"));
 $("modeDaily").addEventListener("click", () => setMode("daily"));
 $("modeFree").addEventListener("click", () => setMode("free"));

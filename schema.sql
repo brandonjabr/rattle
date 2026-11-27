@@ -57,3 +57,5 @@ CREATE TABLE IF NOT EXISTS names (
   pid        TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_scores_player ON scores (player COLLATE NOCASE);

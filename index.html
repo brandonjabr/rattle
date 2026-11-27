@@ -26,7 +26,7 @@
   <meta property="og:image:alt" content="Rattle: name as many as you can in 90 seconds" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://playrattle.io/og.png" />
-  <link rel="stylesheet" href="styles.css?v=14eb92b158" />
+  <link rel="stylesheet" href="styles.css?v=aeaf2c17ca" />
 </head>
 <body>
   <main class="app">
@@ -165,6 +165,12 @@
 
     <footer>&copy; Brandon Jabr 2026</footer>
 
+    <!-- small popup message (e.g. username already taken) -->
+    <div class="popup" id="popup" role="alert" hidden>
+      <span class="popup-icon">⚠️</span><span id="popupText"></span>
+      <button class="popup-x" id="popupClose" aria-label="Dismiss">&times;</button>
+    </div>
+
     <!-- "N people are playing now" notice (start screen only) -->
     <div class="toast" id="activeToast" role="status" hidden>
       <button class="toast-body" id="activeJoin"></button>
@@ -187,6 +193,6 @@
     </div>
   </div>
 
-  <script type="module" src="game.js?v=14eb92b158"></script>
+  <script type="module" src="game.js?v=aeaf2c17ca"></script>
 </body>
 </html>

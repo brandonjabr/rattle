@@ -325,6 +325,19 @@ body {
   .bd-hint { display: none; }
 }
 
+/* small popup message (e.g. username already taken) */
+.popup { position: fixed; left: 50%; top: max(16px, calc(env(safe-area-inset-top) + 10px)); z-index: 50;
+  width: min(400px, calc(100% - 28px)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; padding: 12px 8px 12px 14px;
+  background: var(--card-solid); color: var(--ink); border: 1.5px solid color-mix(in srgb, var(--bad) 55%, transparent);
+  border-radius: 14px; box-shadow: 0 10px 30px rgba(20, 18, 14, 0.2);
+  font-size: 0.92rem; font-weight: 700; line-height: 1.35; animation: popin .35s cubic-bezier(.2,.9,.3,1.25) both; }
+@keyframes popin { from { opacity: 0; transform: translate(-50%, -16px) scale(.97); } }
+.popup #popupText { flex: 1; }
+.popup-x { appearance: none; flex: none; width: 30px; height: 30px; border: none; border-radius: 50%; cursor: pointer;
+  background: var(--soft); color: var(--muted); font-size: 1.1rem; line-height: 1; font-family: inherit; }
+@media (prefers-reduced-motion: reduce) { .popup { animation: none; } }
+
 /* "N people are playing now" notice */
 body.has-toast { padding-bottom: calc(var(--pb) + 96px); }
 .toast { position: fixed; left: 50%; bottom: max(16px, calc(env(safe-area-inset-bottom) + 10px)); z-index: 30;

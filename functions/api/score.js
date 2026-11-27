@@ -56,7 +56,7 @@ export async function onRequestPost({ request, env }) {
   // Claim the name for this player, or refuse if someone else already has it.
   const claim = await claimName(env, typed, pid);
   if (claim.taken) {
-    return json({ error: "\u201c" + typed + "\u201d is already taken on the leaderboard. Please pick another name.", code: "name_taken" }, 409);
+    return json({ error: "Username \u201c" + typed + "\u201d is already taken. Please use a unique username!", code: "name_taken" }, 409);
   }
   const player = claim.name;
 
@@ -131,10 +131,23 @@ async function claimName(env, typed, pid) {
   }
   for (const name of candidates) {
     const key = nameKey(name);
+    // 1. Already claimed: only its owner may use it.
+    const owner = await env.DB.prepare("SELECT pid, name FROM names WHERE name_key=?1").bind(key).first();
+    if (owner) {
+      if (owner.pid === pid) return { name: owner.name };   // keep the spelling it was claimed with
+      continue;
+    }
+    // 2. Not claimed yet, but already on a leaderboard (scores from before names were
+    //    claimed): taken if any of those scores came from a different player.
+    const used = await env.DB.prepare(
+      "SELECT 1 FROM scores WHERE player = ?1 COLLATE NOCASE AND (pid IS NULL OR pid != ?2) LIMIT 1"
+    ).bind(name, pid).first();
+    if (used) continue;
+    // 3. Free: claim it (if two players race, the first insert wins).
     await env.DB.prepare("INSERT OR IGNORE INTO names (name_key, name, pid, created_at) VALUES (?1,?2,?3, datetime('now'))")
       .bind(key, name, pid).run();
     const row = await env.DB.prepare("SELECT pid, name FROM names WHERE name_key=?1").bind(key).first();
-    if (row && row.pid === pid) return { name: row.name };   // keep the spelling it was claimed with
+    if (row && row.pid === pid) return { name: row.name };
   }
   return { taken: true };
 }
