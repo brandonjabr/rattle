@@ -24,7 +24,14 @@ export async function onRequestPost({ request, env }) {
 
   const categoryId = String(body.categoryId || "");
   const player = cleanName(body.player);
-  const pid = PID.test(String(body.pid || "")) ? String(body.pid) : null;
+  // Anonymous device id from the browser. If it's missing (storage blocked, or a page
+  // loaded before an update), use a stand-in from a hash of the connection instead of
+  // refusing the score: same network + same browser = same player for the day.
+  let pid = PID.test(String(body.pid || "")) ? String(body.pid) : null;
+  if (!pid) {
+    pid = await fallbackPid(request);
+    console.warn("score: no device id from client, using connection hash");
+  }
   const answers = Array.isArray(body.answers) ? body.answers.slice(0, 500).map(String) : [];
 
   const puzzle = DECK.find((d) => d.id === categoryId);
@@ -37,7 +44,6 @@ export async function onRequestPost({ request, env }) {
     if (categoryId === dailyCategoryId(n)) day = dayString(n);
     else if (categoryId === dailyCategoryId(n - 1) && now - n * 86400000 < GRACE_MS) day = dayString(n - 1);
     else return json({ error: "That isn't today's Daily Challenge. Play it in Free Play instead." }, 400);
-    if (!pid) return json({ error: "Please refresh the page and try again." }, 400);
     const done = await env.DB.prepare(
       "SELECT 1 FROM scores WHERE day=?1 AND pid=?2 AND game_type='daily_challenge' LIMIT 1"
     ).bind(day, pid).first();
@@ -91,6 +97,13 @@ async function topScores(env, category, gameType, day) {
     "SELECT player, MAX(score) AS score FROM scores WHERE category=?1 AND game_type=?2 AND day=?3 GROUP BY player ORDER BY score DESC, player ASC LIMIT 20"
   ).bind(category, gameType, day).all();
   return results || [];
+}
+
+async function fallbackPid(request) {
+  const ip = request.headers.get("CF-Connecting-IP") || "";
+  const ua = request.headers.get("User-Agent") || "";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("rattle|" + ip + "|" + ua));
+  return "h-" + [...new Uint8Array(buf)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function cleanName(v) {

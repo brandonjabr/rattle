@@ -1,7 +1,7 @@
 /* Rattle, 60 second rarity rush (frontend) */
-import { DECK } from "./deck.js?v=46f4f903c4";
-import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js?v=46f4f903c4";
-import { dailyCategoryId, dayNumber, dayString, puzzleNumber, LAUNCH_DAY } from "./schedule.js?v=46f4f903c4";
+import { DECK } from "./deck.js?v=50b5bcecd4";
+import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js?v=50b5bcecd4";
+import { dailyCategoryId, dayNumber, dayString, puzzleNumber, LAUNCH_DAY } from "./schedule.js?v=50b5bcecd4";
 
 const TOTAL = 60;
 const R = 52, C = 2 * Math.PI * R;
@@ -666,16 +666,26 @@ function closeBoards() {
 const ACTIVE_MIN = 6;                       // show the notice when more than 5 are playing
 const activeToast = $("activeToast");
 let activeCount = 0, activeDismissed = false;
+// Anonymous id kept in this browser, so a player counts once per day. If the browser
+// blocks storage (Safari "Block All Cookies", some in-app browsers), fall back to an id
+// for this visit so posting still works; the server also has its own fallback.
+let memPid = null;
+function newPid() {
+  try { if (crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 8);
+}
 function playerId() {
-  // Anonymous id kept in this browser, so a player counts once per day.
   try {
     let id = localStorage.getItem("rattle-pid");
-    if (!id) {
-      id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+    if (!id || !/^[a-z0-9-]{8,64}$/i.test(id)) {
+      id = newPid();
       localStorage.setItem("rattle-pid", id);
+      if (localStorage.getItem("rattle-pid") !== id) throw new Error("storage not kept");
     }
     return id;
-  } catch (e) { return null; }
+  } catch (e) {
+    return memPid || (memPid = newPid());
+  }
 }
 function recordDailyStart() {
   const pid = playerId();
