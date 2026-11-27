@@ -26,7 +26,7 @@
   <meta property="og:image:alt" content="Rattle: name as many as you can in 60 seconds" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://playrattle.io/og.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=46f4f903c4" />
 </head>
 <body>
   <main class="app">
@@ -127,7 +127,7 @@
     <section class="screen results" id="resultsScreen" hidden>
       <div class="confetti" id="confetti"></div>
       <div class="results-inner">
-        <div class="r-title">Time!</div>
+        <div class="r-title" id="rTitle">Time!</div>
         <div class="r-score" id="finalScore">0</div>
         <div class="r-sub" id="finalSub"></div>
         <div class="challenge-result" id="challengeResult" hidden></div>
@@ -151,6 +151,7 @@
                    autocomplete="off" autocapitalize="words" />
             <button class="big-btn sm" id="submitScore">Post my score</button>
           </div>
+          <label class="remember"><input type="checkbox" id="rememberName" /> Remember my name on this device</label>
           <ol class="lb-list" id="lbList"></ol>
           <div class="lb-note" id="lbNote"></div>
         </div>
@@ -186,6 +187,6 @@
     </div>
   </div>
 
-  <script type="module" src="game.js"></script>
+  <script type="module" src="game.js?v=46f4f903c4"></script>
 </body>
 </html>

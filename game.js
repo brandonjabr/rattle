@@ -1,7 +1,7 @@
 /* Rattle, 60 second rarity rush (frontend) */
-import { DECK } from "./deck.js";
-import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js";
-import { dailyCategoryId, dayNumber, dayString, puzzleNumber, LAUNCH_DAY } from "./schedule.js";
+import { DECK } from "./deck.js?v=46f4f903c4";
+import { BANDS, bandOf, norm, indexCategory, pointsFor } from "./scoring.js?v=46f4f903c4";
+import { dailyCategoryId, dayNumber, dayString, puzzleNumber, LAUNCH_DAY } from "./schedule.js?v=46f4f903c4";
 
 const TOTAL = 60;
 const R = 52, C = 2 * Math.PI * R;
@@ -57,11 +57,13 @@ function updateStartCard() {
   $("prevCat").classList.toggle("off", isDaily);
   $("nextCat").classList.toggle("off", isDaily);
   $("prevCat").disabled = $("nextCat").disabled = isDaily;
+  const played = isDaily && loadDaily();
   $("modeHint").innerHTML = isDaily
-    ? (dailyDoneToday()
-        ? "You've posted today's score. Replays can only go on the <b>Free Play</b> leaderboard."
+    ? (played
+        ? "✅ You've played today's challenge and scored <b>" + fmt(dailyTotal(played)) + "</b>. Come back tomorrow, or try <b>Free Play</b>."
         : "Same category for everyone today. Easiest on Monday, hardest on Sunday.")
     : "<b>Choose any category</b> with the arrows. Scores go on the <b>Free Play</b> leaderboard.";
+  $("startBtn").textContent = played ? "See my result" : "Start 60 seconds";
   $("countdown").hidden = !isDaily;
   $("startCategory").textContent = P.category + "!";
   const banner = $("challengeBanner");
@@ -86,10 +88,13 @@ ringFg.style.strokeDashoffset = 0;
 let round = null, raf = null, lastRun = null, lastRank = null, lastAllRank = null;
 
 function startRound() {
+  // The Daily Challenge is one play per day on this device: show the saved result instead.
+  if (mode === "daily" && loadDaily()) { showDailyResult(); return; }
   if (mode === "daily") recordDailyStart();
   activeToast.hidden = true; document.body.classList.remove("has-toast");
   round = { items: [], names: {}, base: 0, pending: [], pendingKeys: {}, start: performance.now(), ended: false,
-            daily: mode === "daily", number: puzzleNumber() };
+            daily: mode === "daily", number: puzzleNumber(), day: dayString(dayNumber()), cat: P.id };
+  saveDaily();   // saved the moment it starts, so refreshing mid-round can't buy a second try
   startScreen.hidden = true; resultsScreen.hidden = true; gameScreen.hidden = false;
   chipsEl.innerHTML = ""; scoreEl.textContent = "0"; countEl.textContent = "0";
   $("catSmall").textContent = P.category.toLowerCase();
@@ -126,6 +131,7 @@ $("form").addEventListener("submit", (ev) => {
     round.pending.push(text);
     addChip(escapeHtml(text), "?", null);
     flash("Saved for review: " + text, "pending");
+    saveDaily();
     return;
   }
   if (round.names[entry.name]) { flash("Already got " + entry.name, "warn"); return; }
@@ -142,6 +148,7 @@ $("form").addEventListener("submit", (ev) => {
   scoreEl.classList.remove("bump"); void scoreEl.offsetWidth; scoreEl.classList.add("bump");
   countEl.textContent = round.items.length;
   flash("+" + pts + "  " + entry.name + (pts >= 700 ? "  🔥" : ""), "good");
+  saveDaily();
 });
 
 function flash(msg, cls) { feedbackEl.textContent = msg; feedbackEl.className = "feedback " + cls; }
@@ -201,21 +208,73 @@ function endRound() {
   if (round.ended) return;
   round.ended = true; cancelAnimationFrame(raf);
   guessEl.disabled = true; timerWrap.classList.remove("pulse");
-  gameScreen.hidden = true; resultsScreen.hidden = false;
-  lastRank = null; lastAllRank = null;
+  saveDaily();
+  showResults(true);
+}
 
-  const total = renderResults(0);
-  if (total >= 3000) confetti();
+// Results screen for `round` (just finished, or restored from this device).
+function showResults(fresh) {
+  startScreen.hidden = true; gameScreen.hidden = true; boardsScreen.hidden = true; resultsScreen.hidden = false;
+  activeToast.hidden = true; document.body.classList.remove("has-toast");
+  lastRank = round.rank || null; lastAllRank = round.allRank || null;
+  $("rTitle").textContent = fresh ? "Time!" : "Today's Daily Challenge";
 
-  $("shareBtn").textContent = "Share result";
+  const total = renderResults(fresh ? 0 : null);
+  if (fresh && total >= 3000) confetti();
+
+  $("shareBtn").textContent = round.posted ? "Share my rank" : "Share result";
   $("shareBtn").onclick = doShare;
+  // A Daily Challenge can't be replayed today, so point to Free Play instead.
+  $("againBtn").textContent = round.daily ? "Try Free Play" : "Play again";
 
-  // leaderboard
   resetLeaderboardUI();
   loadLeaderboard("today");
 
-  renderReview(round.pending.map((answer) => ({ answer, state: "checking" })));
-  if (round.pending.length) verifyPending();
+  if (round.reviewed) renderReview(round.reviewed.map((x) => ({ ...x, band: x.pts != null ? bandOf(x.pts) : null })));
+  else {
+    renderReview(round.pending.map((answer) => ({ answer, state: "checking" })));
+    if (round.pending.length) verifyPending();
+  }
+}
+
+// ---- today's Daily Challenge, saved on this device (one play per day) ----
+const DAILY_KEY = "rattle-daily";
+function loadDaily() {
+  try {
+    const d = JSON.parse(localStorage.getItem(DAILY_KEY) || "null");
+    return d && d.day === dayString(dayNumber()) && d.cat === dailyCategoryId() ? d : null;
+  } catch (e) { return null; }
+}
+function saveDaily() {
+  if (!round || !round.daily) return;
+  const d = { day: round.day, cat: round.cat, number: round.number, ended: round.ended,
+    items: round.items.map((i) => ({ name: i.name, points: i.points, raw: i.raw })),
+    pending: round.pending, reviewed: round.reviewed || null,
+    posted: !!round.posted, rank: round.rank || null, allRank: round.allRank || null };
+  try { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); } catch (e) {}
+}
+function dailyTotal(d) {
+  const pts = d.items.map((i) => i.points), base = pts.reduce((a, b) => a + b, 0), n = pts.length;
+  const avg = n ? Math.round(base / n) : 0;
+  return base + n * 50 + Math.round(avg * 3) + pts.filter((p) => p >= 700).length * 300;
+}
+// Rebuild today's round from this device and show its result (left mid-round = ends there).
+function showDailyResult() {
+  const d = loadDaily();
+  if (!d) return false;
+  cancelAnimationFrame(raf);
+  mode = "daily";
+  $("modeDaily").classList.add("active"); $("modeFree").classList.remove("active");
+  loadPuzzle(dailyIndex());
+  round = { items: d.items.map((i) => ({ ...i, band: bandOf(i.points) })), names: {}, base: 0,
+            pending: d.pending || [], pendingKeys: {}, ended: true, daily: true, number: d.number,
+            day: d.day, cat: d.cat, reviewed: d.reviewed, posted: d.posted, rank: d.rank, allRank: d.allRank,
+            restored: true };
+  for (const i of round.items) { round.names[i.name] = true; round.base += i.points; }
+  for (const t of round.pending) round.pendingKeys[norm(t)] = true;
+  if (!d.ended) saveDaily();
+  showResults(false);
+  return true;
 }
 
 // Totals, breakdown and haul for the current round. Counts up from `from`.
@@ -235,7 +294,7 @@ function renderResults(from) {
   // Verified answers are sent as typed: the server matches them against its own verified table.
   lastRun = { categoryId: P.id, answers: round.items.map((i) => i.raw || i.name), total, count, dist,
               daily: round.daily, number: round.number,
-              gameType: round.daily && !round.freeOnly ? GAME_TYPE.daily : GAME_TYPE.free };
+              gameType: round.daily ? GAME_TYPE.daily : GAME_TYPE.free };
 
   $("finalSub").textContent = count + " named, avg " + avg + " pts" + (total >= best && total > 0 ? ", new best!" : ", best " + fmt(best));
   $("haul").innerHTML = haulCard(dist, round.items, count);
@@ -254,8 +313,8 @@ function renderResults(from) {
     row("Connoisseur bonus", purist, "avg " + avg) +
     row("Deep cuts", deep, deepN + " over 700 pts") +
     '<div class="brow total"><span>Total</span><span class="v" id="totalV">0</span></div>';
-  animateCount($("finalScore"), from, total, 900);
-  animateCount($("totalV"), from, total, 900);
+  animateCount($("finalScore"), from ?? total, total, from == null ? 1 : 900);
+  animateCount($("totalV"), from ?? total, total, from == null ? 1 : 900);
   return total;
 }
 
@@ -263,7 +322,7 @@ function renderResults(from) {
 async function verifyPending() {
   const pendingRound = round;
   const btn = $("submitScore");
-  btn.disabled = true; btn.textContent = "Checking answers...";
+  if (!pendingRound.posted) { btn.disabled = true; btn.textContent = "Checking answers..."; }
   let results = null;
   try {
     const res = await fetch("/api/verify", {
@@ -292,8 +351,13 @@ async function verifyPending() {
   });
   renderReview(rows);
   if (rows.some((x) => x.state === "accepted")) renderResults(before);
+  // Keep only what's needed to redraw this review later (only checked answers are final).
+  if (!rows.some((x) => x.state === "unchecked")) {
+    round.reviewed = rows.map(({ answer, state, name, pts }) => ({ answer, state, name, pts }));
+  }
+  saveDaily();
 
-  if (btn.textContent === "Checking answers...") { btn.disabled = false; btn.textContent = postLabel(); }
+  if (btn.textContent === "Checking answers...") { btn.disabled = false; btn.textContent = "Post my score"; }
 }
 
 function renderReview(rows) {
@@ -333,29 +397,33 @@ function resetLeaderboardUI() {
   $("lbWrap").classList.remove("muted");
   $("lbTitle").textContent = lastRun && lastRun.daily ? "Daily Challenge leaderboard" : "Free Play leaderboard";
   $("nameInput").value = getName();
+  $("rememberName").checked = rememberPref();
   $("submitScore").disabled = false;
   $("submitScore").textContent = "Post my score";
   $("lbNote").textContent = "";
   $("lbList").innerHTML = "";
   lbScope = "today"; setTab("today");
-  // Already posted today's Daily Challenge: this replay can only go on Free Play.
-  if (lastRun && lastRun.gameType === GAME_TYPE.daily && dailyDoneToday()) {
-    postAsFreePlay("You've already posted today's Daily Challenge, so this round can only go on the Free Play leaderboard.");
+  if (round && round.daily && round.posted) {
+    $("submitScore").disabled = true;
+    $("submitScore").textContent = "Posted ✓";
+    lbStickyNote = round.rank
+      ? "You're #" + round.rank + " today" + (round.allRank ? ", #" + round.allRank + " all time" : "") + " in the Daily Challenge."
+      : "Your score for today's Daily Challenge is posted.";
+  } else if (round && round.daily && !round.ended) {
+    lbStickyNote = "";
+  } else if (round && round.daily && round.restored) {
+    lbStickyNote = "You haven't posted today's score yet. Post it to see where you rank!";
   }
+  $("lbNote").textContent = lbStickyNote;
 }
-// One Daily Challenge score per player per day (enforced by the server too).
-function dailyDoneToday() {
-  try { return localStorage.getItem("rattle-daily-done") === dayString(dayNumber()); } catch (e) { return false; }
-}
-function markDailyDone(day) { try { localStorage.setItem("rattle-daily-done", day || dayString(dayNumber())); } catch (e) {} }
-function postLabel() { return round && round.freeOnly ? "Post to Free Play" : "Post my score"; }
-function postAsFreePlay(note) {
-  lastRun.gameType = GAME_TYPE.free;
-  if (round) round.freeOnly = true;
-  $("lbTitle").textContent = "Free Play leaderboard";
-  $("submitScore").disabled = false;
-  $("submitScore").textContent = "Post to Free Play";
-  $("lbNote").textContent = lbStickyNote = note;
+// Daily score already on the board (posted from this device earlier, or another tab).
+function markPosted(rank, allRank, note) {
+  round.posted = true; round.rank = rank || null; round.allRank = allRank || null;
+  lastRank = round.rank; lastAllRank = round.allRank;
+  saveDaily();
+  $("submitScore").disabled = true;
+  $("submitScore").textContent = "Posted ✓";
+  if (note) $("lbNote").textContent = lbStickyNote = note;
 }
 async function loadLeaderboard(scope) {
   lbScope = scope; setTab(scope);
@@ -377,7 +445,7 @@ async function loadLeaderboard(scope) {
 async function postScore() {
   if (!lastRun) return;
   const name = ($("nameInput").value.trim() || "Anonymous").slice(0, 20);
-  setName(name);
+  setName(name, $("rememberName").checked);
   const btn = $("submitScore");
   btn.disabled = true; btn.textContent = "Posting...";
   try {
@@ -388,13 +456,10 @@ async function postScore() {
                              answers: lastRun.answers, gameType: lastRun.gameType })
     });
     if (res.status === 409) {
-      // Server says today's Daily Challenge is already posted (e.g. from before
-      // this browser remembered it). Offer Free Play instead.
+      // Server says this device already posted today's Daily Challenge (e.g. from another tab).
       const err = await res.json().catch(() => ({}));
-      markDailyDone();
-      postAsFreePlay(err.error || "You've already posted today's Daily Challenge. For the rest of the day you can only post Free Play scores.");
+      markPosted(null, null, err.error || "You've already posted today's Daily Challenge. For the rest of the day you can only post Free Play scores.");
       loadLeaderboard("today");
-      updateStartCard();
       return;
     }
     if (res.status === 400) {
@@ -407,17 +472,17 @@ async function postScore() {
     if (!res.ok) throw new Error("http " + res.status);
     const data = await res.json();
     lbStickyNote = "";
-    if (data.gameType === GAME_TYPE.daily) markDailyDone(data.day);
+    if (data.gameType === GAME_TYPE.daily) markPosted(data.rank, data.allTimeRank);
     lbScope = "today"; setTab("today");
     renderBoard(data.top, name);
     const allPart = data.allTimeRank ? ", #" + data.allTimeRank + " all time" : "";
     $("lbNote").textContent = "You are #" + data.rank + " today" + allPart +
       (data.gameType === GAME_TYPE.daily ? " in the Daily Challenge." : " in Free Play " + P.category.toLowerCase() + ".");
-    btn.textContent = "Posted!";
+    btn.textContent = data.gameType === GAME_TYPE.daily ? "Posted ✓" : "Posted!";
     lastRank = data.rank; lastAllRank = data.allTimeRank || null;
     $("shareBtn").textContent = "Share my rank";
   } catch (e) {
-    btn.disabled = false; btn.textContent = postLabel();
+    btn.disabled = false; btn.textContent = "Post my score";
     $("lbNote").textContent = "Could not reach the leaderboard. Deploy to Cloudflare to enable it.";
   }
 }
@@ -546,8 +611,25 @@ function tickCountdown() {
 function bestKey() { return "rattle-best-" + P.id; }
 function getBest() { try { return parseInt(localStorage.getItem(bestKey()) || "0", 10) || 0; } catch (e) { return 0; } }
 function saveBest(total) { const b = getBest(); if (total > b) { try { localStorage.setItem(bestKey(), total); } catch (e) {} return total; } return b; }
-function getName() { try { return localStorage.getItem("rattle-name") || ""; } catch (e) { return ""; } }
-function setName(n) { try { localStorage.setItem("rattle-name", n); } catch (e) {} }
+// Player name: kept for this visit, and saved on this device only if "Remember my name" is ticked.
+let sessionName = "";
+function rememberPref() {
+  try {
+    const v = localStorage.getItem("rattle-remember");
+    return v === null ? !!localStorage.getItem("rattle-name") : v === "1";   // earlier visitors had it saved
+  } catch (e) { return false; }
+}
+function getName() {
+  try { if (rememberPref()) return localStorage.getItem("rattle-name") || sessionName; } catch (e) {}
+  return sessionName;
+}
+function setName(n, remember) {
+  sessionName = n;
+  try {
+    localStorage.setItem("rattle-remember", remember ? "1" : "0");
+    if (remember) localStorage.setItem("rattle-name", n); else localStorage.removeItem("rattle-name");
+  } catch (e) {}
+}
 
 // ---- leaderboards screen: swipe between categories, Daily Challenge or Free Play ----
 const boardsScreen = $("boardsScreen"), bdTrack = $("bdTrack"), bdChips = $("bdChips");
@@ -610,7 +692,7 @@ async function refreshActive() {
   updateActiveToast();
 }
 function updateActiveToast() {
-  const show = activeCount >= ACTIVE_MIN && !activeDismissed && !startScreen.hidden;
+  const show = activeCount >= ACTIVE_MIN && !activeDismissed && !startScreen.hidden && !loadDaily();
   if (show) {
     $("activeJoin").innerHTML = '<span class="live"></span><span><b>' + fmt(activeCount) +
       " people</b> are playing Rattle's daily challenge now! Join the fun and see where you rank!</span>";
@@ -789,7 +871,16 @@ document.addEventListener("keydown", (e) => {
 $("startBtn").addEventListener("click", startRound);
 $("prevCat").addEventListener("click", () => loadPuzzle(deckIndex - 1));
 $("nextCat").addEventListener("click", () => loadPuzzle(deckIndex + 1));
-$("againBtn").addEventListener("click", () => { updateStartCard(); resultsScreen.hidden = true; startScreen.hidden = false; updateActiveToast(); });
+$("againBtn").addEventListener("click", () => {
+  resultsScreen.hidden = true; startScreen.hidden = false;
+  if (round && round.daily) setMode("free"); else updateStartCard();
+  updateActiveToast();
+});
+$("rememberName").addEventListener("change", (e) => {
+  const name = $("nameInput").value.trim().slice(0, 20);
+  setName(name || sessionName, e.target.checked && !!(name || sessionName));
+  try { localStorage.setItem("rattle-remember", e.target.checked ? "1" : "0"); } catch (err) {}
+});
 $("activeJoin").addEventListener("click", () => {
   activeDismissed = true; updateActiveToast();
   setMode("daily");
@@ -811,6 +902,7 @@ $("howModal").addEventListener("click", function (e) { if (e.target === this) th
 if (challenge && challenge.idx !== dailyIndex()) setMode("free", challenge.idx);
 else setMode("daily");
 if (location.hash === "#leaderboards") openBoards();
+else if (mode === "daily" && loadDaily()) showDailyResult();   // already played today: show the result
 refreshActive();
 setInterval(refreshActive, 2 * 60 * 1000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshActive(); });
